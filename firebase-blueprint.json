@@ -1,0 +1,250 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with self-managing account details and settings",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "User unique identifier matching auth UID",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the user",
+          "maxLength": 100
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Profile picture URL or data URI",
+          "maxLength": 204800
+        },
+        "role": {
+          "type": "string",
+          "description": "User role in the system",
+          "enum": ["client", "developer", "manager", "admin"]
+        },
+        "company": {
+          "type": "string",
+          "description": "Company or business name",
+          "maxLength": 150
+        },
+        "bio": {
+          "type": "string",
+          "description": "Short bio or notes about user",
+          "maxLength": 500
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number",
+          "maxLength": 30
+        },
+        "status": {
+          "type": "string",
+          "description": "Account status",
+          "enum": ["active", "pending", "suspended"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of user creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last profile update"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "description": "ISO timestamp of last sign in"
+        }
+      },
+      "required": ["uid", "email", "displayName"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Client website project managed through Service4Websites",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the project",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Project title",
+          "maxLength": 150
+        },
+        "clientName": {
+          "type": "string",
+          "description": "Client contact or organization name",
+          "maxLength": 100
+        },
+        "clientEmail": {
+          "type": "string",
+          "description": "Client contact email",
+          "maxLength": 256
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the user who owns or created this project",
+          "maxLength": 128
+        },
+        "category": {
+          "type": "string",
+          "description": "Project category or website type",
+          "maxLength": 60
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of project",
+          "enum": ["planning", "in_progress", "review", "completed"]
+        },
+        "budget": {
+          "type": "number",
+          "description": "Project budget amount in USD"
+        },
+        "deadline": {
+          "type": "string",
+          "description": "Target completion date"
+        },
+        "description": {
+          "type": "string",
+          "description": "Project requirements and details",
+          "maxLength": 2000
+        },
+        "driveSyncStatus": {
+          "type": "string",
+          "description": "Google Drive synchronization status",
+          "enum": ["synced", "pending", "not_synced"]
+        },
+        "driveFileId": {
+          "type": "string",
+          "description": "Associated Google Drive file ID if synced",
+          "maxLength": 256
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["id", "title", "ownerId", "status"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "User actions and project updates event log",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the activity event",
+          "maxLength": 128
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of event recorded",
+          "enum": ["project_created", "project_updated", "project_completed", "user_signup", "profile_updated", "drive_synced"]
+        },
+        "title": {
+          "type": "string",
+          "description": "Short headline of the action",
+          "maxLength": 150
+        },
+        "description": {
+          "type": "string",
+          "description": "Contextual description of the event",
+          "maxLength": 500
+        },
+        "actorName": {
+          "type": "string",
+          "description": "Name of the user who performed the action",
+          "maxLength": 100
+        },
+        "actorPhoto": {
+          "type": "string",
+          "description": "Avatar of the actor",
+          "maxLength": 204800
+        },
+        "targetId": {
+          "type": "string",
+          "description": "ID of the affected project or user",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of the activity",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "type", "title", "actorName", "createdAt"]
+    },
+    "TrafficMetric": {
+      "title": "TrafficMetric",
+      "description": "Aggregated visitor traffic and conversion analytics snapshot",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Snapshot identifier",
+          "maxLength": 64
+        },
+        "activeVisitors": {
+          "type": "number",
+          "description": "Currently active concurrent visitors"
+        },
+        "totalVisitors": {
+          "type": "number",
+          "description": "Total unique visitors count"
+        },
+        "pageViews": {
+          "type": "number",
+          "description": "Total page views"
+        },
+        "bounceRate": {
+          "type": "number",
+          "description": "Bounce rate percentage"
+        },
+        "conversionRate": {
+          "type": "number",
+          "description": "Conversion rate percentage"
+        },
+        "conversions": {
+          "type": "number",
+          "description": "Number of goal conversions recorded"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last updated ISO timestamp"
+        }
+      },
+      "required": ["id", "activeVisitors", "conversionRate"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of signed-up users and self-managed profiles"
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Collection of website projects created and tracked in Service4Websites"
+    },
+    "/activities/{activityId}": {
+      "schema": "Activity",
+      "description": "Collection of activity events for project updates and user actions"
+    },
+    "/traffic_metrics/{metricId}": {
+      "schema": "TrafficMetric",
+      "description": "Real-time visitor and conversion metrics"
+    }
+  }
+}

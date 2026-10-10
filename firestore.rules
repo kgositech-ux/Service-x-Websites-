@@ -1,0 +1,171 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Connection test document
+    match /test/{docId} {
+      allow get, list: if true;
+    }
+
+    // Validate User Profile document
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'role', 'company', 'bio', 'phone', 'status', 'createdAt', 'updatedAt', 'lastLoginAt']) &&
+        data.uid is string && data.uid.size() <= 128 &&
+        data.email is string && data.email.size() <= 256 &&
+        data.displayName is string && data.displayName.size() <= 100 &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 204800)) &&
+        (!('role' in data) || (data.role in ['client', 'developer', 'manager', 'admin'])) &&
+        (!('company' in data) || (data.company is string && data.company.size() <= 150)) &&
+        (!('bio' in data) || (data.bio is string && data.bio.size() <= 500)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+        (!('status' in data) || (data.status in ['active', 'pending', 'suspended'])) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64)) &&
+        (!('lastLoginAt' in data) || (data.lastLoginAt is string && data.lastLoginAt.size() <= 64));
+    }
+
+    // Validate Project document
+    function isValidProject(data) {
+      return data.keys().hasAll(['id', 'title', 'ownerId', 'status']) &&
+        data.keys().hasOnly(['id', 'title', 'clientName', 'clientEmail', 'ownerId', 'category', 'status', 'budget', 'deadline', 'description', 'driveSyncStatus', 'driveFileId', 'createdAt', 'updatedAt']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.title is string && data.title.size() <= 150 &&
+        data.ownerId is string && data.ownerId.size() <= 128 &&
+        data.status in ['planning', 'in_progress', 'review', 'completed'] &&
+        (!('clientName' in data) || (data.clientName is string && data.clientName.size() <= 100)) &&
+        (!('clientEmail' in data) || (data.clientEmail is string && data.clientEmail.size() <= 256)) &&
+        (!('category' in data) || (data.category is string && data.category.size() <= 60)) &&
+        (!('budget' in data) || (data.budget is number && data.budget >= 0)) &&
+        (!('deadline' in data) || (data.deadline is string && data.deadline.size() <= 64)) &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+        (!('driveSyncStatus' in data) || (data.driveSyncStatus in ['synced', 'pending', 'not_synced'])) &&
+        (!('driveFileId' in data) || (data.driveFileId is string && data.driveFileId.size() <= 256)) &&
+        (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // Validate Activity document
+    function isValidActivity(data) {
+      return data.keys().hasAll(['id', 'type', 'title', 'actorName', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'type', 'title', 'description', 'actorName', 'actorPhoto', 'targetId', 'createdAt']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.type in ['project_created', 'project_updated', 'project_completed', 'user_signup', 'profile_updated', 'drive_synced'] &&
+        data.title is string && data.title.size() <= 150 &&
+        data.actorName is string && data.actorName.size() <= 100 &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+        (!('actorPhoto' in data) || (data.actorPhoto is string && data.actorPhoto.size() <= 204800)) &&
+        (!('targetId' in data) || (data.targetId is string && data.targetId.size() <= 128)) &&
+        data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    // Validate Traffic Metric document
+    function isValidTrafficMetric(data) {
+      return data.keys().hasAll(['id', 'activeVisitors', 'conversionRate']) &&
+        data.keys().hasOnly(['id', 'activeVisitors', 'totalVisitors', 'pageViews', 'bounceRate', 'conversionRate', 'conversions', 'updatedAt']) &&
+        data.id is string && data.id.size() <= 64 &&
+        data.activeVisitors is number && data.activeVisitors >= 0 &&
+        data.conversionRate is number && data.conversionRate >= 0 && data.conversionRate <= 100 &&
+        (!('totalVisitors' in data) || (data.totalVisitors is number && data.totalVisitors >= 0)) &&
+        (!('pageViews' in data) || (data.pageViews is number && data.pageViews >= 0)) &&
+        (!('bounceRate' in data) || (data.bounceRate is number && data.bounceRate >= 0 && data.bounceRate <= 100)) &&
+        (!('conversions' in data) || (data.conversions is number && data.conversions >= 0)) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // Users collection: signed-up users database and self-managed profiles
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      // List all users in dashboard (authenticated users can view registered members directory)
+      allow list: if isSignedIn();
+
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUser(incoming()) &&
+        incoming().uid == request.auth.uid;
+
+      allow update: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUser(incoming()) &&
+        incoming().uid == existing().uid &&
+        (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    // Projects collection: client web projects
+    match /projects/{projectId} {
+      // Anyone can view client project listings and showcase
+      allow get, list: if true;
+
+      allow create: if isSignedIn() &&
+        isValidId(projectId) &&
+        isValidProject(incoming()) &&
+        incoming().ownerId == request.auth.uid;
+
+      allow update: if isSignedIn() &&
+        isValidId(projectId) &&
+        isValidProject(incoming()) &&
+        resource.data.ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt);
+
+      allow delete: if isSignedIn() &&
+        isValidId(projectId) &&
+        resource.data.ownerId == request.auth.uid;
+    }
+
+    // Activities collection: activity feed for project updates and user actions
+    match /activities/{activityId} {
+      allow get, list: if true; // Activity feed is visible to viewers and team members
+
+      allow create: if isSignedIn() &&
+        isValidId(activityId) &&
+        isValidActivity(incoming());
+
+      allow update, delete: if isSignedIn() && isValidId(activityId);
+    }
+
+    // Real-time Traffic metrics
+    match /traffic_metrics/{metricId} {
+      allow get, list: if true; // public read for stats
+
+      allow create: if isSignedIn() &&
+        isValidId(metricId) &&
+        isValidTrafficMetric(incoming());
+
+      allow update: if isSignedIn() &&
+        isValidId(metricId) &&
+        isValidTrafficMetric(incoming()) &&
+        incoming().id == existing().id;
+
+      allow delete: if isSignedIn() && isValidId(metricId);
+    }
+  }
+}

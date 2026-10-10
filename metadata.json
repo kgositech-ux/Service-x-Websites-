@@ -1,0 +1,6 @@
+{
+  "name": "Service4Websites - Client Portal & Analytics",
+  "description": "Comprehensive client management portal with live agency website content, dynamic client project showcase, user self-service accounts, profile settings, and real-time visitor traffic analytics for Service Websites Agency.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
