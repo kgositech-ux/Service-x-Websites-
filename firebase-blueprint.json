@@ -50,6 +50,32 @@
           "description": "Account status",
           "enum": ["active", "pending", "suspended"]
         },
+        "emailVerified": {
+          "type": "boolean",
+          "description": "Whether the user email is verified"
+        },
+        "googleVerified": {
+          "type": "boolean",
+          "description": "Whether Google verification code confirmation has been completed"
+        },
+        "phoneVerified": {
+          "type": "boolean",
+          "description": "Whether phone SMS verification code was confirmed"
+        },
+        "verificationCode": {
+          "type": "string",
+          "description": "6-digit Google verification confirmation code",
+          "maxLength": 16
+        },
+        "verificationCodeSentAt": {
+          "type": "string",
+          "description": "ISO timestamp when verification code was generated and dispatched"
+        },
+        "verificationStatus": {
+          "type": "string",
+          "description": "Google verification confirmation status",
+          "enum": ["unverified", "pending", "verified"]
+        },
         "createdAt": {
           "type": "string",
           "description": "ISO timestamp of user creation"
@@ -126,6 +152,11 @@
         "driveFileId": {
           "type": "string",
           "description": "Associated Google Drive file ID if synced",
+          "maxLength": 256
+        },
+        "driveFolderId": {
+          "type": "string",
+          "description": "Associated Google Drive folder ID",
           "maxLength": 256
         },
         "createdAt": {

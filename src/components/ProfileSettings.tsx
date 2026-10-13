@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getCachedDriveAccessToken, signInWithGoogle } from '../lib/firebase';
+import { GOOGLE_BUSINESS_PROFILE } from '../lib/googleBusinessProfile';
 
 const PRESET_AVATARS = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
@@ -27,7 +28,11 @@ const PRESET_AVATARS = [
   'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&q=80',
 ];
 
-export const ProfileSettings: React.FC = () => {
+interface ProfileSettingsProps {
+  onOpenVerificationModal?: () => void;
+}
+
+export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerificationModal }) => {
   const { user, profile, updateProfileData, signIn } = useAuth();
 
   const [displayName, setDisplayName] = useState('');
@@ -407,6 +412,39 @@ export const ProfileSettings: React.FC = () => {
           >
             <span>Open Google Drive</span>
             <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+          </a>
+        </div>
+
+        {/* Google Business Profile Connection Status */}
+        <div className="bg-slate-900/60 rounded-2xl border border-blue-500/30 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+              G
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-bold text-white">Google Business Profile</h4>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  Linked & Verified
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  5.0 ★ (47 Reviews)
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Service Websites Agency · Moumo Street, Rustenburg · KG Machine ID: {GOOGLE_BUSINESS_PROFILE.kgmid}
+              </p>
+            </div>
+          </div>
+
+          <a
+            href={GOOGLE_BUSINESS_PROFILE.shareUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <span>Open on Google</span>
+            <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
 

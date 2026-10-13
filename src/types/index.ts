@@ -8,6 +8,12 @@ export interface UserProfile {
   bio?: string;
   phone?: string;
   status: 'active' | 'pending' | 'suspended';
+  emailVerified?: boolean;
+  googleVerified?: boolean;
+  phoneVerified?: boolean;
+  verificationCode?: string;
+  verificationCodeSentAt?: string;
+  verificationStatus?: 'unverified' | 'pending' | 'verified';
   createdAt?: string;
   updatedAt?: string;
   lastLoginAt?: string;
@@ -26,6 +32,7 @@ export interface ProjectItem {
   description?: string;
   driveSyncStatus?: 'synced' | 'pending' | 'not_synced';
   driveFileId?: string;
+  driveFolderId?: string;
   createdAt?: string;
   updatedAt?: string;
 }

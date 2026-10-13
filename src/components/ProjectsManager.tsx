@@ -211,7 +211,15 @@ export const ProjectsManager: React.FC<ProjectsManagerProps> = ({ onOpenDriveBac
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto shrink-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full md:w-auto shrink-0 flex-wrap">
+          <button
+            onClick={onOpenDriveBackup}
+            className="w-full sm:w-auto px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+            title="Add all client projects to your Google Drive folder"
+          >
+            <HardDrive className="w-4 h-4 text-cyan-300" />
+            <span>Add All Projects to Google Drive</span>
+          </button>
           <button
             onClick={() => setShowCreateModal(true)}
             className="w-full sm:w-auto px-4 sm:px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-lg shadow-amber-400/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
@@ -221,11 +229,11 @@ export const ProjectsManager: React.FC<ProjectsManagerProps> = ({ onOpenDriveBac
           </button>
           <button
             onClick={handleDownloadLocalBackup}
-            className="w-full sm:w-auto px-4 sm:px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-2 transition-all cursor-pointer"
+            className="w-full sm:w-auto px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             title="Download JSON backup locally"
           >
             <Download className="w-4 h-4 text-cyan-400" />
-            <span>Export Local JSON</span>
+            <span>Local JSON</span>
           </button>
         </div>
       </div>
@@ -337,6 +345,30 @@ export const ProjectsManager: React.FC<ProjectsManagerProps> = ({ onOpenDriveBac
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   Live on Website
                 </span>
+              </div>
+
+              {/* Google Drive Status */}
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="flex items-center gap-1.5 text-[11px] text-blue-300/80">
+                  <HardDrive className="w-3 h-3 text-blue-400" />
+                  <span>Google Drive:</span>
+                </span>
+                <button
+                  onClick={onOpenDriveBackup}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 hover:bg-blue-500/25 text-blue-400 border border-blue-500/20 flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Sync all projects to Google Drive"
+                >
+                  {p.driveSyncStatus === 'synced' ? (
+                    <>
+                      <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                      <span>Synced to Drive</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Add to Drive</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>

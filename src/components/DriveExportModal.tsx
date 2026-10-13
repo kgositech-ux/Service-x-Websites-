@@ -9,15 +9,21 @@ import {
   Loader2,
   Sparkles,
   FolderOpen,
-  DollarSign,
   FileSpreadsheet,
+  FileText,
+  FileCode,
+  ShieldCheck,
 } from 'lucide-react';
 import { ProjectItem } from '../types';
-import { uploadProjectsToGoogleDrive, DriveUploadResult } from '../lib/googleDrive';
+import {
+  uploadProjectsToGoogleDrive,
+  generateProjectsCSV,
+  DriveUploadResult,
+} from '../lib/googleDrive';
 import { INITIAL_SAMPLE_PROJECTS } from '../lib/seedData';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { getCachedDriveAccessToken, signInWithGoogle } from '../lib/firebase';
+import { getCachedDriveAccessToken, signInWithGoogleForDrive } from '../lib/firebase';
 
 interface DriveExportModalProps {
   isOpen: boolean;
@@ -45,7 +51,7 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
   const effectiveProjects =
     projects && projects.length > 0
       ? projects
-      : INITIAL_SAMPLE_PROJECTS(user?.email || 'servicewebsites6@gmail.com');
+      : INITIAL_SAMPLE_PROJECTS(user?.email || 'manager@servicewebsites.co.za');
 
   const totalBudget = effectiveProjects.reduce((sum, p) => sum + (p.budget || 0), 0);
   const hasCachedToken = Boolean(getCachedDriveAccessToken());
@@ -58,7 +64,7 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
     try {
       const result = await uploadProjectsToGoogleDrive(
         effectiveProjects,
-        user?.email || 'servicewebsites6@gmail.com'
+        user?.email || 'manager@servicewebsites.co.za'
       );
       setUploadResult(result);
       if (result.success && onExportComplete) {
@@ -79,12 +85,27 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
     setIsUploading(true);
     setUploadStep('Authorizing Google Drive...');
     try {
-      await signInWithGoogle();
+      const res = await signInWithGoogleForDrive();
+      if (!res) {
+        setIsUploading(false);
+        setUploadStep('');
+        return;
+      }
       await handleConfirmUpload();
     } catch (err: any) {
+      const code = err?.code || '';
+      if (
+        code === 'auth/popup-closed-by-user' ||
+        code === 'auth/cancelled-popup-request' ||
+        code === 'auth/popup-blocked'
+      ) {
+        setIsUploading(false);
+        setUploadStep('');
+        return;
+      }
       setUploadResult({
         success: false,
-        error: 'Google Sign-in was cancelled or encountered an error: ' + (err?.message || ''),
+        error: 'Google Sign-in was cancelled or encountered an issue: ' + (err?.message || ''),
       });
       setIsUploading(false);
       setUploadStep('');
@@ -100,9 +121,9 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
             exportedAt: new Date().toISOString(),
             agency: 'Service Websites (Service4Websites)',
             website: 'https://service4websites.netlify.app/',
-            userEmail: user?.email || 'servicewebsites6@gmail.com',
+            userEmail: user?.email || 'manager@servicewebsites.co.za',
             totalProjects: effectiveProjects.length,
-            totalBudget,
+            totalBudgetUSD: totalBudget,
             projects: effectiveProjects,
           },
           null,
@@ -114,6 +135,21 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
     downloadAnchor.setAttribute(
       'download',
       `ServiceWebsites_All_Projects_${new Date().toISOString().split('T')[0]}.json`
+    );
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const handleDownloadLocalCSV = () => {
+    const csvStr =
+      'data:text/csv;charset=utf-8,' +
+      encodeURIComponent(generateProjectsCSV(effectiveProjects));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', csvStr);
+    downloadAnchor.setAttribute(
+      'download',
+      `ServiceWebsites_All_Projects_${new Date().toISOString().split('T')[0]}.csv`
     );
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
@@ -164,7 +200,7 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
               }`}
             >
               <div className={`font-semibold flex items-center justify-between pb-1 border-b ${isLight ? 'border-slate-200 text-slate-900' : 'border-slate-800 text-white'}`}>
-                <span>Projects to upload:</span>
+                <span>Projects ready to upload:</span>
                 <div className="flex items-center gap-2">
                   <span className="text-blue-600 dark:text-cyan-400 font-bold">
                     {effectiveProjects.length} Projects
@@ -175,7 +211,7 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
                 </div>
               </div>
 
-              <ul className={`divide-y max-h-44 overflow-y-auto pr-1 ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'}`}>
+              <ul className={`divide-y max-h-40 overflow-y-auto pr-1 ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'}`}>
                 {effectiveProjects.map((p, idx) => (
                   <li key={p.id || idx} className="py-2 flex items-center justify-between text-[11px] gap-2">
                     <div className="min-w-0">
@@ -202,22 +238,32 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
 
             {/* Explanatory Confirmation Banner */}
             <div
-              className={`p-3 rounded-xl border text-xs space-y-1.5 ${
-                isLight ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-blue-950/20 border-blue-800/30 text-blue-200'
+              className={`p-3.5 rounded-xl border text-xs space-y-2 ${
+                isLight ? 'bg-blue-50/80 border-blue-200 text-blue-900' : 'bg-blue-950/20 border-blue-800/40 text-blue-200'
               }`}
             >
               <div className="flex items-center gap-1.5 font-semibold">
-                <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
-                <span>Google Drive Destination:</span>
+                <FolderOpen className="w-4 h-4 text-blue-500" />
+                <span>Google Drive Destination & Deliverables:</span>
               </div>
               <p className="text-[11px] leading-relaxed">
-                With your permission, this action will create a dedicated folder named{' '}
-                <strong className="underline">Service Websites - Client Projects</strong> in your Google Drive and upload:
+                Creates a dedicated folder named{' '}
+                <strong className="underline">Service Websites - Client Projects</strong> in your Google Drive containing 3 sync deliverables:
               </p>
-              <ul className="list-disc list-inside text-[11px] space-y-0.5 pt-0.5">
-                <li><code className="font-mono text-[10px] bg-blue-100 dark:bg-blue-900/40 px-1 py-0.5 rounded">ServiceWebsites_All_Projects_Backup.json</code> (structured data)</li>
-                <li><code className="font-mono text-[10px] bg-blue-100 dark:bg-blue-900/40 px-1 py-0.5 rounded">ServiceWebsites_Projects_Executive_Report.txt</code> (readable summary)</li>
-              </ul>
+              <div className="space-y-1.5 pt-0.5">
+                <div className="flex items-center gap-2 text-[11px]">
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span><strong>Spreadsheet (.CSV)</strong>: Openable directly in Google Sheets</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <FileCode className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                  <span><strong>Full JSON Backup</strong>: Complete structured project data</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <span><strong>Executive Report (.TXT)</strong>: Clean plain text client summary</span>
+                </div>
+              </div>
             </div>
 
             {/* Error Message */}
@@ -228,7 +274,7 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
                   <span className="font-semibold block">Google Drive Connection Notice:</span>
                   <span className="break-words">{uploadResult.error}</span>
                   <p className="mt-1 text-[11px] text-rose-400">
-                    Click the official Google button below to grant permission, or save a local JSON copy.
+                    Click the official Google button below to grant permission, or download copies directly.
                   </p>
                 </div>
               </div>
@@ -257,53 +303,67 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
               </div>
             )}
 
-            {/* Actions Bar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+            {/* Offline / Direct Downloads Bar */}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleDownloadLocalCSV}
+                className={`flex-1 py-2 px-2.5 rounded-xl text-[11px] font-medium flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                  isLight
+                    ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                    : 'bg-slate-800/70 hover:bg-slate-800 border-slate-700 text-slate-300'
+                }`}
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Save CSV Sheets</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleDownloadLocalJson}
-                className={`px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`flex-1 py-2 px-2.5 rounded-xl text-[11px] font-medium flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
                   isLight
-                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
+                    ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                    : 'bg-slate-800/70 hover:bg-slate-800 border-slate-700 text-slate-300'
                 }`}
               >
-                <Download className="w-3.5 h-3.5" />
-                <span>Save Local JSON</span>
+                <Download className="w-3.5 h-3.5 text-blue-500" />
+                <span>Save JSON</span>
               </button>
+            </div>
 
-              <div className="flex items-center gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  disabled={isUploading}
-                  className={`px-4 py-2 rounded-xl text-xs font-medium cursor-pointer ${
-                    isLight
-                      ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                      : 'bg-slate-800 text-slate-300 hover:text-white'
-                  }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmUpload}
-                  disabled={isUploading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>{uploadStep || 'Syncing with Drive...'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Confirm & Upload to Drive</span>
-                    </>
-                  )}
-                </button>
-              </div>
+            {/* Actions Bar */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isUploading}
+                className={`px-4 py-2 rounded-xl text-xs font-medium cursor-pointer ${
+                  isLight
+                    ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                    : 'bg-slate-800 text-slate-300 hover:text-white'
+                }`}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmUpload}
+                disabled={isUploading}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>{uploadStep || 'Syncing with Drive...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Upload All to Google Drive</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         ) : (
@@ -326,64 +386,76 @@ export const DriveExportModal: React.FC<DriveExportModalProps> = ({
               </p>
             </div>
 
-            <div className={`p-3 rounded-xl border text-xs text-left space-y-1.5 ${
+            <div className={`p-3.5 rounded-xl border text-xs text-left space-y-2 ${
               isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
             }`}>
               <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Files saved to your Drive:</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Files saved to your Google Drive:</span>
               </div>
-              <p className="text-[11px] truncate text-slate-600 dark:text-slate-400">
-                • {uploadResult.fileName} (JSON database)
+              <p className="text-[11px] truncate text-slate-600 dark:text-slate-300">
+                • <strong>{uploadResult.csvFileName || 'ServiceWebsites_All_Projects.csv'}</strong> (Google Sheets spreadsheet)
               </p>
-              <p className="text-[11px] truncate text-slate-600 dark:text-slate-400">
-                • ServiceWebsites_Projects_Executive_Report.txt (Text summary)
+              <p className="text-[11px] truncate text-slate-600 dark:text-slate-300">
+                • <strong>{uploadResult.fileName}</strong> (JSON database backup)
+              </p>
+              <p className="text-[11px] truncate text-slate-600 dark:text-slate-300">
+                • <strong>ServiceWebsites_Projects_Executive_Report.txt</strong> (Executive summary)
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-3">
+            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
               {uploadResult.folderLink && (
                 <a
                   href={uploadResult.folderLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold inline-flex items-center gap-2 shadow-lg shadow-blue-500/25"
+                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold inline-flex items-center gap-2 shadow-lg shadow-blue-500/25"
                 >
                   <FolderOpen className="w-3.5 h-3.5" />
                   <span>Open Folder in Drive</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               )}
-              {uploadResult.webLink && !uploadResult.folderLink && (
+
+              {uploadResult.csvWebLink && (
+                <a
+                  href={uploadResult.csvWebLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-2 shadow-lg shadow-emerald-500/25"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>Open in Google Sheets</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+
+              {uploadResult.webLink && (
                 <a
                   href={uploadResult.webLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold inline-flex items-center gap-2 shadow-lg shadow-blue-500/25"
+                  className={`px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 border ${
+                    isLight
+                      ? 'bg-white hover:bg-slate-50 border-slate-300 text-slate-700'
+                      : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+                  }`}
                 >
-                  <span>View in Drive</span>
+                  <FileCode className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>View JSON in Drive</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               )}
-              <a
-                href="https://drive.google.com/drive/my-drive"
-                target="_blank"
-                rel="noreferrer"
-                className={`px-4 py-2 rounded-xl text-xs font-medium inline-flex items-center gap-1.5 ${
-                  isLight
-                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-800'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-                }`}
-              >
-                <span>My Drive</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+            </div>
+
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className={`px-4 py-2 rounded-xl text-xs font-medium cursor-pointer ${
+                className={`w-full py-2 rounded-xl text-xs font-medium cursor-pointer ${
                   isLight
-                    ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                    ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     : 'bg-slate-800 text-slate-300 hover:text-white'
                 }`}
               >

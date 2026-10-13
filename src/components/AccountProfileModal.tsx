@@ -18,12 +18,15 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { logActivity } from '../lib/activityLogger';
+import { GOOGLE_BUSINESS_PROFILE } from '../lib/googleBusinessProfile';
 
 interface AccountProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenDashboard: () => void;
   onOpenDriveBackup: () => void;
+  onOpenVerificationModal?: () => void;
+  onOpenAuthModal?: (tab?: 'signin' | 'signup') => void;
 }
 
 export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
@@ -31,8 +34,10 @@ export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
   onClose,
   onOpenDashboard,
   onOpenDriveBackup,
+  onOpenVerificationModal,
+  onOpenAuthModal,
 }) => {
-  const { user, profile, updateProfileData, signOut, signIn } = useAuth();
+  const { user, profile, updateProfileData, signOut, signIn, signInDemo } = useAuth();
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,7 +106,7 @@ export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
 
   const fullName = profile?.displayName || user?.displayName || 'Service Websites';
   const phone = profile?.phone || '0601375180';
-  const email = user?.email || 'servicewebsites6@gmail.com';
+  const email = user?.email || 'manager@servicewebsites.co.za';
   const dateJoined = profile?.createdAt
     ? new Date(profile.createdAt).toLocaleDateString('en-GB')
     : '27/09/2026';
@@ -289,6 +294,18 @@ export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
             <span>Open Client Portal & Analytics</span>
           </button>
 
+          {/* Google Business Profile Verified Link */}
+          <a
+            href={GOOGLE_BUSINESS_PROFILE.shareUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full py-2 px-4 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <span className="w-4 h-4 rounded-full bg-white text-blue-600 flex items-center justify-center font-bold text-[9px]">G</span>
+            <span>Google Business Profile (5.0 ★)</span>
+            <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
+          </a>
+
           <button
             onClick={() => {
               onClose();
@@ -300,24 +317,38 @@ export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
             <span>Backup Projects to Google Drive</span>
           </button>
 
-          {user ? (
+          {user || profile ? (
             <button
               onClick={() => {
                 signOut();
                 onClose();
               }}
-              className="w-full py-1.5 text-xs text-rose-400 hover:text-rose-300 flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 px-4 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-500 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
+              <LogOut className="w-4 h-4" />
+              <span>Log Out of Account</span>
             </button>
           ) : (
-            <button
-              onClick={() => signIn()}
-              className="w-full py-2 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold flex items-center justify-center gap-2"
-            >
-              <span>Sign in with Google</span>
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenAuthModal?.('signup');
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+              >
+                <span>Sign Up / Create Account</span>
+              </button>
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenAuthModal?.('signin');
+                }}
+                className="w-full py-2 px-4 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-medium text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <span>Sign In with Email</span>
+              </button>
+            </div>
           )}
         </div>
       </div>

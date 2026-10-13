@@ -30,10 +30,20 @@ import {
   Check,
   Shield,
   Zap,
+  Navigation,
+  HardDrive,
+  LogOut,
+  ChevronDown,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { ProjectItem } from '../types';
+import { GOOGLE_BUSINESS_PROFILE } from '../lib/googleBusinessProfile';
+import { GoogleBusinessProfileCard } from './GoogleBusinessProfileCard';
+import { HeroSection } from './HeroSection';
+import { LANDING_PAGES, LANDING_PAGE_CATEGORIES, LandingPageItem } from '../lib/landingPagesData';
+import { LandingPageView } from './LandingPageView';
 
 interface ServiceWebsitesSiteProps {
   projects?: ProjectItem[];
@@ -41,6 +51,10 @@ interface ServiceWebsitesSiteProps {
   onOpenDashboard: () => void;
   onOpenProjectsView?: () => void;
   onOpenDriveBackup?: () => void;
+  onOpenVerificationModal?: () => void;
+  onOpenLandingPage?: (slug: string) => void;
+  activeLandingSlug?: string | null;
+  onOpenAuthModal?: (tab?: 'signin' | 'signup') => void;
 }
 
 interface PortfolioItem {
@@ -371,18 +385,57 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
   onOpenDashboard,
   onOpenProjectsView,
   onOpenDriveBackup,
+  onOpenVerificationModal,
+  onOpenLandingPage,
+  activeLandingSlug,
+  onOpenAuthModal,
 }) => {
-  const { user, profile } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [internalLandingSlug, setInternalLandingSlug] = useState<string | null>(null);
+  const [footerCategoryFilter, setFooterCategoryFilter] = useState<string>('all');
+  const [footerSearch, setFooterSearch] = useState<string>('');
+
+  const currentLandingSlug = activeLandingSlug || internalLandingSlug;
+  const currentLandingPage = currentLandingSlug
+    ? LANDING_PAGES.find((p) => p.slug === currentLandingSlug)
+    : null;
+
+  const handleNavigatePage = (slug: string) => {
+    if (onOpenLandingPage) {
+      onOpenLandingPage(slug);
+    } else {
+      setInternalLandingSlug(slug);
+      window.location.hash = 'page-' + slug;
+    }
+  };
 
   // Portfolio interactive filters
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
   const [portfolioSearch, setPortfolioSearch] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'chronological_desc' | 'chronological_asc'>('chronological_desc');
   const [selectedProjectModal, setSelectedProjectModal] = useState<PortfolioItem | null>(null);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   const isLight = theme === 'light';
+
+  // If a landing page is currently active, render the dedicated LandingPageView
+  if (currentLandingPage) {
+    return (
+      <LandingPageView
+        page={currentLandingPage}
+        onBack={() => {
+          setInternalLandingSlug(null);
+          if (onOpenLandingPage) onOpenLandingPage('');
+          window.location.hash = '';
+        }}
+        onSelectPage={(slug) => handleNavigatePage(slug)}
+        onOpenDashboard={onOpenDashboard}
+        onOpenDriveBackup={onOpenDriveBackup}
+      />
+    );
+  }
 
   const industryTags = [
     'Plumbers',
@@ -527,6 +580,18 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
 
           {/* Right header actions */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Google Drive Projects Backup Button */}
+            {onOpenDriveBackup && (
+              <button
+                onClick={onOpenDriveBackup}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-300 text-xs font-semibold transition-all cursor-pointer"
+                title="Add all client projects to your Google Drive folder"
+              >
+                <HardDrive className="w-3.5 h-3.5 text-blue-500" />
+                <span>Google Drive</span>
+              </button>
+            )}
+
             {/* Direct Jump to Client Dashboard */}
             <button
               onClick={onOpenDashboard}
@@ -561,7 +626,7 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
             {/* Account pill button */}
             <button
               onClick={onOpenAccountModal}
-              className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border text-xs font-medium transition-all group ${
+              className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border text-xs font-medium transition-all group cursor-pointer ${
                 isLight
                   ? 'border-amber-500/40 bg-amber-50 hover:bg-amber-100/60 text-amber-900'
                   : 'border-amber-400/40 bg-amber-400/5 hover:bg-amber-400/15 text-amber-200'
@@ -584,6 +649,25 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                   : 'servicewebsites'}
               </span>
             </button>
+
+            {/* Direct Log Out Button if logged in */}
+            {user || profile ? (
+              <button
+                onClick={() => signOut()}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                title="Log Out of your account"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Log Out</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => (onOpenAuthModal ? onOpenAuthModal('signup') : onOpenAccountModal())}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-md transition-all shrink-0 cursor-pointer"
+              >
+                Sign Up / Sign In
+              </button>
+            )}
 
             {/* Hamburger / Navigation button */}
             <button
@@ -611,21 +695,53 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
               <a href="#hero" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Home</a>
               <a href="#about" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Target Sectors</a>
               <a href="#portfolio" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg font-bold text-amber-500">All Client Projects</a>
-              <a href="#reviews" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Reviews</a>
+              <a href="#reviews" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Google Reviews</a>
               <a href="#services" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Services</a>
               <a href="#ecommerce" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">E-Commerce</a>
               <a href="#process" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Our Process</a>
               <a href="#location" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Location</a>
+              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-amber-500 font-semibold">Local SEO & FAQ</a>
               <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Contact Us</a>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   onOpenDashboard();
                 }}
-                className="p-2 text-left text-amber-600 dark:text-amber-300 font-bold hover:bg-amber-400/10 rounded-lg flex items-center gap-1.5"
+                className="p-2 text-left text-amber-600 dark:text-amber-300 font-bold hover:bg-amber-400/10 rounded-lg flex items-center gap-1.5 col-span-2 cursor-pointer"
               >
-                <span>📊 Client Dashboard</span>
+                <span>📊 Client Dashboard & Analytics</span>
               </button>
+              <a
+                href="#footer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 text-left text-amber-500 font-bold hover:bg-amber-400/10 rounded-lg flex items-center gap-1.5 col-span-2"
+              >
+                <span>📄 Explore 25 Service & Industry Landing Pages</span>
+              </a>
+
+              {user || profile ? (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    signOut();
+                  }}
+                  className="p-2 text-left text-rose-500 font-bold hover:bg-rose-500/10 rounded-lg flex items-center gap-1.5 col-span-2 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 text-rose-500" />
+                  <span>Log Out of Account</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (onOpenAuthModal) onOpenAuthModal('signup');
+                    else onOpenAccountModal();
+                  }}
+                  className="p-2 text-left text-amber-400 font-bold hover:bg-amber-400/10 rounded-lg flex items-center gap-1.5 col-span-2 cursor-pointer"
+                >
+                  <span>🔐 Sign Up / Sign In</span>
+                </button>
+              )}
             </div>
 
             <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
@@ -646,76 +762,14 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
       </header>
 
       {/* Main Content Area - Chronological Order of Headings */}
-      <main className="max-w-4xl mx-auto px-3 sm:px-6 py-6 sm:py-8 space-y-14 sm:space-y-16 w-full min-w-0">
+      <main className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-8 space-y-14 sm:space-y-16 w-full min-w-0">
         
-        {/* HEADING 1: Hero Section */}
-        <section id="hero" className="space-y-5 pt-2">
-          {/* Green dot badge: Rustenburg's Premium Web Design Agency */}
-          <div
-            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-semibold shadow-xs ${
-              isLight
-                ? 'border-amber-500/40 bg-amber-50 text-amber-900'
-                : 'border-amber-500/30 bg-[#161c29]/90 text-amber-200/90'
-            }`}
-          >
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Rustenburg&apos;s Premium Web Design Agency</span>
-          </div>
-
-          {/* Big Editorial Headline */}
-          <h2
-            className={`text-2xl sm:text-4xl md:text-5xl font-serif font-bold tracking-tight leading-[1.15] break-words ${
-              isLight ? 'text-slate-900' : 'text-white'
-            }`}
-          >
-            Need a fast loading affordable website?
-          </h2>
-
-          <p
-            className={`text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl ${
-              isLight ? 'text-slate-600' : 'text-slate-300'
-            }`}
-          >
-            We build affordable premium websites in Rustenburg serving South African SMEs, trades,
-            online stores, and growing businesses nationwide.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <a
-              href="https://wa.me/27601375180?text=Hi%20Service%20Websites,%20I%20would%20like%20a%20website%20quote"
-              target="_blank"
-              rel="noreferrer"
-              className="px-5 sm:px-6 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-amber-400/20 flex items-center gap-2 transition-all cursor-pointer"
-            >
-              <MessageCircle className="w-4 h-4 fill-slate-950" />
-              <span>Get a Free WhatsApp Quote</span>
-            </a>
-
-            <a
-              href="#portfolio"
-              className={`px-4 sm:px-5 py-3 rounded-2xl font-semibold text-xs sm:text-sm border flex items-center gap-2 transition-all ${
-                isLight
-                  ? 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300 shadow-xs'
-                  : 'bg-slate-900 hover:bg-slate-800 text-white border-slate-700'
-              }`}
-            >
-              <span>Explore All Projects ({allProjects.length})</span>
-              <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-            </a>
-
-            <button
-              onClick={onOpenDashboard}
-              className={`px-4 sm:px-5 py-3 rounded-2xl font-semibold text-xs sm:text-sm border flex items-center gap-2 transition-all ${
-                isLight
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'
-                  : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border-slate-800'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5 text-cyan-500" />
-              <span className="hidden xs:inline">Client</span> Portal
-            </button>
-          </div>
-        </section>
+        {/* HEADING 1: Premium Hero Section with Background Sliding Carousel */}
+        <HeroSection
+          onOpenDriveBackup={onOpenDriveBackup}
+          onOpenDashboard={onOpenDashboard}
+          allProjectsCount={allProjects.length}
+        />
 
         {/* HEADING 2: Websites for Tradespeople & Service Businesses */}
         <section
@@ -790,16 +844,28 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
               </p>
             </div>
 
-            {/* Quick Action: Open Client Portal to add/edit projects */}
-            {onOpenProjectsView && (
-              <button
-                onClick={onOpenProjectsView}
-                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-amber-400/10 hover:bg-amber-400/20 text-amber-600 dark:text-amber-300 border border-amber-400/30 transition-colors cursor-pointer self-start sm:self-auto"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Manage in Portal ({allProjects.length})</span>
-              </button>
-            )}
+            {/* Actions: Add All Projects to Google Drive + Manage in Portal */}
+            <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+              {onOpenDriveBackup && (
+                <button
+                  onClick={onOpenDriveBackup}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/30 transition-colors cursor-pointer"
+                  title="Add all client projects to your Google Drive folder"
+                >
+                  <HardDrive className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Add All Projects to Google Drive</span>
+                </button>
+              )}
+              {onOpenProjectsView && (
+                <button
+                  onClick={onOpenProjectsView}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-amber-400/10 hover:bg-amber-400/20 text-amber-600 dark:text-amber-300 border border-amber-400/30 transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Manage in Portal ({allProjects.length})</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Interactive Filter & Search Controls */}
@@ -1066,49 +1132,62 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
             <span className="text-xs uppercase font-bold tracking-widest text-amber-500 dark:text-amber-400 block">
               — GOOGLE REVIEWS & TESTIMONIALS
             </span>
-            <h3
-              className={`text-2xl sm:text-4xl font-serif font-bold ${
-                isLight ? 'text-slate-900' : 'text-white'
-              }`}
-            >
-              What Our Clients Say
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h3
+                className={`text-2xl sm:text-4xl font-serif font-bold ${
+                  isLight ? 'text-slate-900' : 'text-white'
+                }`}
+              >
+                What Our Clients Say
+              </h3>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 self-start sm:self-auto">
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
+                Google Verified Reviews
+              </span>
+            </div>
             <div className="flex items-center gap-2 text-sm pt-1">
               <div className="flex items-center text-amber-400 gap-0.5">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="w-4 h-4 fill-amber-400" />
                 ))}
               </div>
-              <span className="font-bold">4.8</span>
+              <span className="font-bold text-slate-900 dark:text-white">5.0</span>
               <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>
-                · 5 Google verified reviews
+                · {GOOGLE_BUSINESS_PROFILE.reviewCount} Google verified reviews
               </span>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <a
-              href="https://g.page/r/service-websites-rustenburg/review"
+              href={GOOGLE_BUSINESS_PROFILE.shareUrl}
               target="_blank"
               rel="noreferrer"
               className="px-6 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-amber-400/20 transition-all cursor-pointer"
             >
-              <span>⭐ Leave a Review</span>
+              <span>⭐ Leave a Review on Google</span>
             </a>
 
             <a
-              href="https://google.com/search?q=service+websites+rustenburg"
+              href={GOOGLE_BUSINESS_PROFILE.shareUrl}
               target="_blank"
               rel="noreferrer"
-              className={`px-6 py-3 rounded-2xl border font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              className={`px-6 py-3 rounded-2xl border font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 isLight
-                  ? 'border-amber-500/50 bg-amber-50/50 hover:bg-amber-100/50 text-amber-900'
-                  : 'border-amber-400/40 bg-transparent hover:bg-amber-400/10 text-amber-300'
+                  ? 'border-blue-300 bg-blue-50/70 hover:bg-blue-100 text-blue-900 shadow-xs'
+                  : 'border-blue-500/40 bg-blue-950/40 hover:bg-blue-900/60 text-blue-300'
               }`}
             >
+              <span className="w-4 h-4 rounded-full bg-white text-blue-600 flex items-center justify-center font-bold text-[10px]">
+                G
+              </span>
               <span>View our Google Business Profile</span>
+              <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
+
+          {/* Embedded Official Google Business Profile Card */}
+          <GoogleBusinessProfileCard variant="full" />
 
           {/* Client review cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -1126,7 +1205,7 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                     MCD Group
                   </h4>
                   <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    Verified Client · Industrial Plant Automation
+                    Verified Google Review · Industrial Plant Automation
                   </span>
                 </div>
               </div>
@@ -1155,7 +1234,7 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                     Vuka Construction
                   </h4>
                   <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    Verified Client · Concrete & Waterproofing
+                    Verified Google Review · Concrete & Waterproofing
                   </span>
                 </div>
               </div>
@@ -1448,32 +1527,185 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
               />
             </div>
             <div
-              className={`p-4 border-t flex items-center justify-between text-xs ${
+              className={`p-4 border-t flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs ${
                 isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#0e1420] border-slate-800'
               }`}
             >
               <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-medium">
                 <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
-                <span>Moumo St, Tlhabane, Rustenburg</span>
+                <span>Moumo St, Tlhabane, Rustenburg, 0309</span>
               </div>
-              <a
-                href="https://maps.google.com/?q=Moumo+Street,+Tlhabane,+Rustenburg"
-                target="_blank"
-                rel="noreferrer"
-                className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-colors ${
-                  isLight
-                    ? 'bg-amber-100 hover:bg-amber-200 text-amber-900'
-                    : 'bg-slate-800 hover:bg-slate-700 text-amber-300'
-                }`}
-              >
-                <span>Open in Google Maps</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <a
+                  href={GOOGLE_BUSINESS_PROFILE.shareUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-xl font-bold bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  <span>Google Business Profile</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href={GOOGLE_BUSINESS_PROFILE.mapsSearchUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    isLight
+                      ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-300'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                  }`}
+                >
+                  <span>Directions</span>
+                  <Navigation className="w-3.5 h-3.5 text-blue-500" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Local SEO: Suburbs & Business Areas Served in Rustenburg */}
+          <div className="pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-500 dark:text-amber-400 block">
+                  LOCAL SERVICE REGIONS & SUBURBS
+                </span>
+                <h4 className={`text-sm sm:text-base font-serif font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  Websites & Local SEO Across Greater Rustenburg & North West
+                </h4>
+              </div>
+              <span className="hidden sm:inline-block text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                Active Coverage
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+              {[
+                { name: 'Rustenburg CBD', focus: 'Retail, Legal & Corporate' },
+                { name: 'Tlhabane & Tlhabane West', focus: 'Trades, Medical & Services' },
+                { name: 'Cashan & Safarituine', focus: 'Professional Practices & Consultancies' },
+                { name: 'Waterfall East & Mall Area', focus: 'E-Commerce, Auto & Hospitality' },
+                { name: 'Phokeng & Royal Bafokeng', focus: 'Mining Services & Contracting' },
+                { name: 'Boitekong & Paardekraal', focus: 'Logistics, Industrial & Plant Hire' },
+                { name: 'Geelhoutpark & Protea Park', focus: 'Home Services, Education & Clinics' },
+                { name: 'Brits & North West Corridor', focus: 'Regional & Nationwide SMEs' },
+              ].map((area, i) => (
+                <div
+                  key={i}
+                  className={`p-3 rounded-2xl border transition-all ${
+                    isLight
+                      ? 'bg-white border-slate-200 hover:border-amber-400'
+                      : 'bg-[#111723] border-slate-800 hover:border-amber-500/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold text-amber-500 dark:text-amber-300">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{area.name}</span>
+                  </div>
+                  <p className={`text-[10px] mt-1 truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    {area.focus}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* HEADING 9: Contact Information */}
+        {/* HEADING 9: Local SEO & Web Design Frequently Asked Questions */}
+        <section
+          id="faq"
+          className={`space-y-4 pt-4 border-t ${
+            isLight ? 'border-slate-200' : 'border-slate-800/80'
+          }`}
+        >
+          <div className="space-y-1 mb-2">
+            <span className="text-xs uppercase font-bold tracking-widest text-amber-500 dark:text-amber-400 block">
+              — FREQUENTLY ASKED QUESTIONS
+            </span>
+            <h3
+              className={`text-xl sm:text-3xl font-serif font-bold ${
+                isLight ? 'text-slate-900' : 'text-white'
+              }`}
+            >
+              Web Design & Local SEO Questions in Rustenburg
+            </h3>
+            <p className={`text-xs sm:text-sm max-w-2xl leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              Everything you need to know about getting your business found on Google, building high-converting websites, and growing sales in South Africa.
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            {[
+              {
+                q: 'How much does a professional website cost in Rustenburg?',
+                a: 'At Service Websites, our website design packages range from R8,500 for high-converting service business websites up to R42,000 for full-scale headless e-commerce platforms with custom South African payment integrations. We provide fixed, transparent quotes with zero hidden fees.',
+              },
+              {
+                q: 'How does Local SEO help my Rustenburg business get customers?',
+                a: 'Local SEO ensures your business appears in the top Google Maps "3-Pack" and local organic search results when clients in Rustenburg search for your services (e.g., "plumber near me" or "electrician in Rustenburg"). We implement schema markup, citation building, local keywords, and Google Business Profile optimization to directly generate WhatsApp leads and phone calls.',
+              },
+              {
+                q: 'How long will it take to build and launch our website?',
+                a: 'Standard service and trade websites typically launch in 7 to 10 business days from content submission. Custom e-commerce online stores with payment gateways (PayFast, Ozow, Yoco) take approximately 14 to 21 business days.',
+              },
+              {
+                q: 'Are your websites fast and mobile-friendly on South African mobile networks?',
+                a: 'Yes. Every website is built mobile-first with 100/100 Google Core Web Vitals optimization. Our pages load in under 1.0 second on standard mobile networks, keeping bounce rates low and maximizing conversion rates for mobile phone visitors.',
+              },
+              {
+                q: 'Can you integrate South African payment gateways and PayFast?',
+                a: 'Yes. We support all major South African payment providers including PayFast, Ozow Instant EFT, Yoco, Payflex (Buy Now Pay Later), and Apple Pay, allowing your customers to pay safely via cards, bank apps, and installment plans.',
+              },
+              {
+                q: 'Where is Service Websites located and can we meet in person?',
+                a: 'Our agency is physically located on Moumo Street, Tlhabane, Rustenburg, 0309, right between Tlhabane Police Station and Netcare Ferncrest Hospital. We serve businesses throughout Rustenburg, North West, Gauteng, and nationwide via WhatsApp, phone, and in-person consultations.',
+              },
+            ].map((faq, index) => {
+              const isOpen = openFaqIndex === index;
+              return (
+                <div
+                  key={index}
+                  className={`rounded-2xl border transition-all overflow-hidden ${
+                    isLight
+                      ? 'bg-white border-slate-200'
+                      : 'bg-[#111723] border-slate-800'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                    className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-3 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <HelpCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span className={`text-xs sm:text-sm font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                        {faq.q}
+                      </span>
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${
+                        isOpen ? 'rotate-180 text-amber-500' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {isOpen && (
+                    <div
+                      className={`px-4 sm:px-5 pb-4 sm:pb-5 pt-1 text-xs sm:text-sm leading-relaxed border-t ${
+                        isLight
+                          ? 'border-slate-100 text-slate-600 bg-slate-50/50'
+                          : 'border-slate-800/80 text-slate-300 bg-[#0d121c]/50'
+                      }`}
+                    >
+                      <p>{faq.a}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* HEADING 10: Contact Information */}
         <section
           id="contact"
           className={`space-y-4 pt-4 border-t ${
@@ -1501,7 +1733,7 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
               }`}
             >
               <span className={`text-xs uppercase font-bold tracking-wider block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                Direct Telephone
+                Direct Telephone & WhatsApp
               </span>
               <a
                 href="tel:0601375180"
@@ -1542,10 +1774,10 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                 <span className="text-xs uppercase font-bold tracking-wider">Email Inquiries</span>
               </div>
               <a
-                href="mailto:admin@servicewebsites.co.za"
+                href="mailto:manager@servicewebsites.co.za"
                 className="text-sm font-bold text-amber-500 dark:text-amber-300 hover:underline block break-all"
               >
-                admin@servicewebsites.co.za
+                manager@servicewebsites.co.za
               </a>
             </div>
 
@@ -1560,8 +1792,55 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                 <span className="text-xs uppercase font-bold tracking-wider">Physical Address</span>
               </div>
               <p className="text-sm font-bold text-slate-800 dark:text-amber-200">
-                Moumo St, Tlhabane, Rustenburg
+                Moumo St, Tlhabane, Rustenburg, 0309
               </p>
+            </div>
+
+            {/* Google Business Profile Verified Card */}
+            <div
+              className={`p-5 rounded-2xl border space-y-2 sm:col-span-2 ${
+                isLight
+                  ? 'bg-gradient-to-r from-blue-50/60 to-amber-50/60 border-blue-200 shadow-sm'
+                  : 'bg-gradient-to-r from-blue-950/20 to-amber-950/20 border-blue-500/30'
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-md bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                      G
+                    </span>
+                    <span className="text-xs uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">
+                      Verified Google Business Profile
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                      5.0 ★ (47 Reviews)
+                    </span>
+                  </div>
+                  <h4
+                    className={`text-sm sm:text-base font-serif font-bold mt-1.5 ${
+                      isLight ? 'text-slate-900' : 'text-white'
+                    }`}
+                  >
+                    Service Websites Agency
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Moumo Street, Tlhabane, Rustenburg · KG Machine ID: {GOOGLE_BUSINESS_PROFILE.kgmid}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={GOOGLE_BUSINESS_PROFILE.shareUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <span>Open on Google</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
             </div>
 
             {/* Hours */}
@@ -1570,12 +1849,17 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                 isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-[#111723] border-slate-800'
               }`}
             >
-              <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                <Clock className="w-4 h-4 text-cyan-500" />
-                <span className="text-xs uppercase font-bold tracking-wider">Operating Hours</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                  <Clock className="w-4 h-4 text-cyan-500" />
+                  <span className="text-xs uppercase font-bold tracking-wider">Business & Operating Hours</span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                  Open 24/7
+                </span>
               </div>
               <p className={`text-sm font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                Open 24 hours · Emergency WhatsApp response available round the clock
+                Open 24 hours (Monday – Sunday) · 24/7 Direct WhatsApp & Telephone Response
               </p>
             </div>
           </div>
@@ -1661,52 +1945,437 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2">
+          {/* 5-Column Navigation Grid covering all landing page sectors */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 pt-2">
+            {/* Column 1: Agency & Company */}
             <div className="space-y-2">
               <h5 className="font-bold text-amber-500 dark:text-amber-300 uppercase tracking-wider text-[11px]">
-                QUICK NAVIGATION
+                AGENCY & COMPANY
               </h5>
               <ul className="space-y-1.5">
-                <li><a href="#hero" className="hover:underline">Home</a></li>
-                <li><a href="#about" className="hover:underline">Target Sectors</a></li>
-                <li><a href="#portfolio" className="hover:underline font-semibold text-amber-500">All Client Projects</a></li>
-                <li><a href="#reviews" className="hover:underline">Google Reviews</a></li>
-                <li><a href="#services" className="hover:underline">Our Services</a></li>
-                <li><a href="#ecommerce" className="hover:underline">E-Commerce in Detail</a></li>
                 <li>
-                  <button onClick={onOpenDashboard} className="text-amber-600 dark:text-amber-400 font-semibold hover:underline">
-                    Client Portal & Database
+                  <a href="#hero" className="hover:underline">
+                    Home
+                  </a>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('about-us')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    About Service Websites
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('why-choose-us')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Why Choose Us
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('our-clients')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Our Clients & Case Studies
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('use-cases')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Use Cases & Solutions
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-cost-survey-south-africa-2026')}
+                    className="text-left hover:underline text-amber-600 dark:text-amber-400 font-semibold transition-colors cursor-pointer"
+                  >
+                    Website Cost Survey (2026)
+                  </button>
+                </li>
+                <li>
+                  <a href="#faq" className="text-left hover:underline text-amber-500 font-medium">
+                    Local SEO & Web Design FAQ
+                  </a>
+                </li>
+                <li>
+                  <button
+                    onClick={onOpenDashboard}
+                    className="text-left font-semibold text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer"
+                  >
+                    Client Management Portal
                   </button>
                 </li>
               </ul>
             </div>
 
+            {/* Column 2: Web Design & Hosting */}
             <div className="space-y-2">
               <h5 className="font-bold text-amber-500 dark:text-amber-300 uppercase tracking-wider text-[11px]">
-                SERVICE GUIDES
+                WEB DESIGN & HOSTING
               </h5>
               <ul className="space-y-1.5">
-                <li>Web Design Rustenburg</li>
-                <li>Web Design South Africa</li>
-                <li>Local SEO Rustenburg</li>
-                <li>Local SEO South Africa</li>
-                <li>Website Maintenance & Hosting</li>
-                <li>Online Stores & PayFast Setup</li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-rustenburg')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer font-medium"
+                  >
+                    Web Design Rustenburg
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-south-africa')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Web Design South Africa
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('ecommerce-website-south-africa')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    E-Commerce Online Stores
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-hosting-south-africa')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    High-Speed SSD Hosting
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-maintenance-rustenburg')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Website Maintenance Plans
+                  </button>
+                </li>
+                {onOpenDriveBackup && (
+                  <li>
+                    <button
+                      onClick={onOpenDriveBackup}
+                      className="text-left text-blue-500 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                    >
+                      <HardDrive className="w-3 h-3" />
+                      <span>Backup to Google Drive</span>
+                    </button>
+                  </li>
+                )}
               </ul>
             </div>
 
+            {/* Column 3: Local SEO & Google Rankings */}
             <div className="space-y-2">
               <h5 className="font-bold text-amber-500 dark:text-amber-300 uppercase tracking-wider text-[11px]">
-                INDUSTRIES WE BUILD FOR
+                LOCAL SEO & RANKINGS
               </h5>
               <ul className="space-y-1.5">
-                <li>Plumbers & Electricians</li>
-                <li>Builders & Civil Contractors</li>
-                <li>Cleaning Companies</li>
-                <li>Borehole Drilling</li>
-                <li>Lawyers & Professional Practices</li>
-                <li>Restaurants & Food Outlets</li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('local-seo-rustenburg')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer font-medium"
+                  >
+                    Local SEO Rustenburg
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('local-seo-south-africa')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Local SEO South Africa
+                  </button>
+                </li>
+                <li>
+                  <a
+                    href={GOOGLE_BUSINESS_PROFILE.shareUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-500 hover:underline font-semibold flex items-center gap-1"
+                  >
+                    <span>Google Business Profile</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={GOOGLE_BUSINESS_PROFILE.reviewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-amber-500 hover:underline flex items-center gap-1"
+                  >
+                    <span>Leave 5.0 Star Review</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </li>
+                <li>
+                  <a href="#reviews" className="hover:underline">
+                    Client Testimonials
+                  </a>
+                </li>
               </ul>
+            </div>
+
+            {/* Column 4: Business Software & Portals */}
+            <div className="space-y-2">
+              <h5 className="font-bold text-amber-500 dark:text-amber-300 uppercase tracking-wider text-[11px]">
+                SOFTWARE & PORTALS
+              </h5>
+              <ul className="space-y-1.5">
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('business-software-south-africa')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Business Software SA
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('client-portal-software-south-africa')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer font-medium"
+                  >
+                    Client Portal Software
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('crm-software-south-africa')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    CRM & Lead Pipelines
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('project-management-software-south-africa')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Project Management System
+                  </button>
+                </li>
+                <li>
+                  <a href="#portfolio" className="hover:underline text-amber-500 font-medium">
+                    All Live Projects
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 5: Industry Trade Solutions */}
+            <div className="space-y-2">
+              <h5 className="font-bold text-amber-500 dark:text-amber-300 uppercase tracking-wider text-[11px]">
+                INDUSTRY SOLUTIONS
+              </h5>
+              <ul className="space-y-1.5">
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-for-plumbers')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Web Design for Plumbers
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-for-electricians')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Web Design for Electricians
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-for-builders')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Web Design for Builders
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-for-contractors')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Web Design for Contractors
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-for-construction-companies')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Construction Companies
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-for-cleaning-companies')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Cleaning Companies
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-for-lawyers')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Lawyers & Attorneys
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-for-restaurants')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  >
+                    Restaurants & Cafes
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('website-design-for-small-businesses')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer font-medium text-amber-500"
+                  >
+                    Small Businesses (SMMEs)
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Interactive Landing Pages Directory & Search Grid */}
+          <div
+            className={`p-4 sm:p-6 rounded-3xl border space-y-4 ${
+              isLight
+                ? 'bg-gradient-to-br from-slate-50 via-white to-amber-50/40 border-slate-200 shadow-2xs'
+                : 'bg-gradient-to-br from-[#0e1422] to-[#0a0e17] border-slate-800'
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <h4
+                    className={`font-serif font-bold text-sm sm:text-base ${
+                      isLight ? 'text-slate-900' : 'text-white'
+                    }`}
+                  >
+                    All 25 Service & Industry Landing Pages
+                  </h4>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Click any service guide below to view its full technical specifications, pricing, and FAQs.
+                </p>
+              </div>
+
+              {/* Quick Search inside footer directory */}
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search 25 pages..."
+                  value={footerSearch}
+                  onChange={(e) => setFooterSearch(e.target.value)}
+                  className={`w-full pl-8 pr-3 py-1.5 rounded-xl text-xs border outline-none transition-colors ${
+                    isLight
+                      ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500'
+                      : 'bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-amber-400'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <button
+                onClick={() => setFooterCategoryFilter('all')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                  footerCategoryFilter === 'all'
+                    ? 'bg-amber-400 text-slate-950 font-bold'
+                    : isLight
+                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    : 'bg-slate-900 hover:bg-slate-800 text-slate-300'
+                }`}
+              >
+                All Pages ({LANDING_PAGES.length})
+              </button>
+              {LANDING_PAGE_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.group}
+                  onClick={() => setFooterCategoryFilter(cat.group)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                    footerCategoryFilter === cat.group
+                      ? 'bg-amber-400 text-slate-950 font-bold'
+                      : isLight
+                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      : 'bg-slate-900 hover:bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  {cat.name} ({cat.pages.length})
+                </button>
+              ))}
+            </div>
+
+            {/* Filtered Pages Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 pt-2 max-h-96 overflow-y-auto pr-1">
+              {LANDING_PAGES.filter((p) => {
+                const matchesCategory =
+                  footerCategoryFilter === 'all' || p.categoryGroup === footerCategoryFilter;
+                const matchesSearch =
+                  !footerSearch ||
+                  p.title.toLowerCase().includes(footerSearch.toLowerCase()) ||
+                  p.metaDescription.toLowerCase().includes(footerSearch.toLowerCase()) ||
+                  p.category.toLowerCase().includes(footerSearch.toLowerCase());
+                return matchesCategory && matchesSearch;
+              }).map((item) => (
+                <button
+                  key={item.slug}
+                  onClick={() => handleNavigatePage(item.slug)}
+                  className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all hover:scale-[1.01] cursor-pointer group ${
+                    isLight
+                      ? 'bg-white border-slate-200 hover:border-amber-400/80 shadow-2xs hover:shadow-xs'
+                      : 'bg-[#101623] border-slate-800 hover:border-amber-400/50'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between text-[10px] mb-1">
+                      <span className="font-semibold text-amber-500 dark:text-amber-400">
+                        {item.badge}
+                      </span>
+                      <span className="text-slate-400">{item.readTime}</span>
+                    </div>
+                    <h6
+                      className={`font-bold text-xs leading-snug group-hover:text-amber-500 transition-colors ${
+                        isLight ? 'text-slate-900' : 'text-white'
+                      }`}
+                    >
+                      {item.title}
+                    </h6>
+                    <p
+                      className={`text-[11px] mt-1 line-clamp-2 ${
+                        isLight ? 'text-slate-500' : 'text-slate-400'
+                      }`}
+                    >
+                      {item.metaDescription}
+                    </p>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                    <span>Read full page</span>
+                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1716,7 +2385,18 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
             }`}
           >
             <span>© 2026 Service Websites Agency (Pty) Ltd. All rights reserved.</span>
-            <span>Made with passion in Rustenburg, South Africa 🇿🇦</span>
+            <div className="flex items-center gap-2">
+              <a
+                href={GOOGLE_BUSINESS_PROFILE.shareUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-amber-500 hover:underline font-medium"
+              >
+                Google Business Profile: share.google/7Ec5oYGoW892EXMhq
+              </a>
+              <span>·</span>
+              <span>Rustenburg, South Africa 🇿🇦</span>
+            </div>
           </div>
         </footer>
       </main>

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { HardDrive } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
@@ -16,6 +17,8 @@ import { ProjectsManager } from './components/ProjectsManager';
 import { DriveExportModal } from './components/DriveExportModal';
 import { AccountProfileModal } from './components/AccountProfileModal';
 import { ServiceWebsitesSite } from './components/ServiceWebsitesSite';
+import { GoogleVerificationModal } from './components/GoogleVerificationModal';
+import { AuthModal } from './components/AuthModal';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './lib/firebase';
 import { ProjectItem, UserProfile } from './types';
@@ -24,18 +27,64 @@ import {
   INITIAL_SAMPLE_USERS,
   INITIAL_SAMPLE_PROJECTS,
 } from './lib/seedData';
+import { LANDING_PAGES } from './lib/landingPagesData';
+import { LandingPageView } from './components/LandingPageView';
 
 function DashboardContent() {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'website' | 'dashboard'>('website');
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [activeLandingSlug, setActiveLandingSlug] = useState<string | null>(null);
   const [isDriveModalOpen, setIsDriveModalOpen] = useState<boolean>(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState<boolean>(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authModalTab, setAuthModalTab] = useState<'signin' | 'signup'>('signup');
   const [activeVisitors, setActiveVisitors] = useState<number>(46);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [projectsList, setProjectsList] = useState<ProjectItem[]>(
-    INITIAL_SAMPLE_PROJECTS('servicewebsites6@gmail.com')
+    INITIAL_SAMPLE_PROJECTS('manager@servicewebsites.co.za')
   );
+
+  const openAuthModal = (tab: 'signin' | 'signup' = 'signup') => {
+    setAuthModalTab(tab);
+    setIsAuthModalOpen(true);
+  };
+
+  // Synchronize URL hash with landing page slugs and dashboard
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#page-')) {
+        const slug = hash.replace('#page-', '');
+        const found = LANDING_PAGES.find((p) => p.slug === slug);
+        if (found) {
+          setActiveLandingSlug(slug);
+          setViewMode('website');
+        }
+      } else if (hash === '#dashboard') {
+        setViewMode('dashboard');
+        setActiveLandingSlug(null);
+      } else if (
+        hash === '#drive-export' ||
+        hash === '#drive-backup' ||
+        hash === '#google-drive' ||
+        hash === '#add-projects-to-drive'
+      ) {
+        setIsDriveModalOpen(true);
+      } else if (hash === '#signup' || hash === '#register') {
+        openAuthModal('signup');
+      } else if (hash === '#signin' || hash === '#login') {
+        openAuthModal('signin');
+      } else if (!hash || hash === '#hero' || hash === '#about' || hash === '#services' || hash === '#portfolio' || hash === '#reviews' || hash === '#location' || hash === '#contact' || hash === '#footer') {
+        setActiveLandingSlug(null);
+      }
+    };
+
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   // Seed initial data once auth is ready
   useEffect(() => {
@@ -74,7 +123,7 @@ function DashboardContent() {
         if (pList.length > 0) {
           setProjectsList(pList);
         } else {
-          setProjectsList(INITIAL_SAMPLE_PROJECTS(user?.uid || 'servicewebsites6@gmail.com'));
+          setProjectsList(INITIAL_SAMPLE_PROJECTS(user?.uid || 'manager@servicewebsites.co.za'));
         }
       },
       (err) => {
@@ -102,12 +151,31 @@ function DashboardContent() {
           setActiveTab={setActiveTab}
           onOpenDriveBackup={() => setIsDriveModalOpen(true)}
           onOpenAccountModal={() => setIsAccountModalOpen(true)}
+          onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
+          onOpenAuthModal={openAuthModal}
           activeVisitorsCount={activeVisitors}
         />
       )}
 
-      {/* Main View Router: Agency Website or Client Dashboard */}
-      {viewMode === 'website' ? (
+      {/* Main View Router: Dedicated Landing Page, Agency Website, or Client Dashboard */}
+      {activeLandingSlug && LANDING_PAGES.find((p) => p.slug === activeLandingSlug) ? (
+        <LandingPageView
+          page={LANDING_PAGES.find((p) => p.slug === activeLandingSlug)!}
+          onBack={() => {
+            setActiveLandingSlug(null);
+            window.location.hash = '';
+          }}
+          onSelectPage={(slug) => {
+            setActiveLandingSlug(slug);
+            window.location.hash = 'page-' + slug;
+          }}
+          onOpenDashboard={() => {
+            setActiveLandingSlug(null);
+            setViewMode('dashboard');
+          }}
+          onOpenDriveBackup={() => setIsDriveModalOpen(true)}
+        />
+      ) : viewMode === 'website' ? (
         <ServiceWebsitesSite
           projects={projectsList}
           onOpenAccountModal={() => setIsAccountModalOpen(true)}
@@ -117,6 +185,13 @@ function DashboardContent() {
             setActiveTab('projects');
           }}
           onOpenDriveBackup={() => setIsDriveModalOpen(true)}
+          onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
+          onOpenLandingPage={(slug) => {
+            setActiveLandingSlug(slug);
+            window.location.hash = 'page-' + slug;
+          }}
+          activeLandingSlug={activeLandingSlug}
+          onOpenAuthModal={openAuthModal}
         />
       ) : (
         /* Full Client Dashboard & Analytics View */
@@ -158,6 +233,7 @@ function DashboardContent() {
                 <OverviewDashboard
                   setActiveTab={setActiveTab}
                   onOpenDriveBackup={() => setIsDriveModalOpen(true)}
+                  onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
                   users={usersList}
                   projects={projectsList}
                   activeVisitors={activeVisitors}
@@ -171,13 +247,21 @@ function DashboardContent() {
                 />
               )}
 
-              {activeTab === 'users' && <UsersDatabase />}
+              {activeTab === 'users' && (
+                <UsersDatabase
+                  onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
+                />
+              )}
 
               {activeTab === 'projects' && (
                 <ProjectsManager onOpenDriveBackup={() => setIsDriveModalOpen(true)} />
               )}
 
-              {activeTab === 'profile' && <ProfileSettings />}
+              {activeTab === 'profile' && (
+                <ProfileSettings
+                  onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
+                />
+              )}
             </main>
           </div>
         </div>
@@ -189,6 +273,15 @@ function DashboardContent() {
         onClose={() => setIsAccountModalOpen(false)}
         onOpenDashboard={() => setViewMode('dashboard')}
         onOpenDriveBackup={() => setIsDriveModalOpen(true)}
+        onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
+        onOpenAuthModal={openAuthModal}
+      />
+
+      {/* Auth Modal for Email & Google Sign Up / Sign In */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialTab={authModalTab}
       />
 
       {/* Google Drive Export & Backup Confirmation Modal */}
@@ -197,6 +290,26 @@ function DashboardContent() {
         onClose={() => setIsDriveModalOpen(false)}
         projects={projectsList}
       />
+
+      {/* Google Verification & 6-Digit Confirmation Modal */}
+      <GoogleVerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+        onOpenDriveBackup={() => setIsDriveModalOpen(true)}
+      />
+
+      {/* Floating Quick Action Button for Google Drive Projects Sync */}
+      <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2">
+        <button
+          onClick={() => setIsDriveModalOpen(true)}
+          className="group flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-xl shadow-blue-500/30 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+          title="Add all projects to Google Drive"
+        >
+          <HardDrive className="w-4 h-4 text-white" />
+          <span className="hidden sm:inline">Add All Projects to Google Drive</span>
+          <span className="sm:hidden">Drive Sync</span>
+        </button>
+      </div>
     </div>
   );
 }

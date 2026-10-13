@@ -23,10 +23,12 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { ProjectItem, UserProfile, ActivityItem } from '../types';
 import { INITIAL_SAMPLE_ACTIVITIES } from '../lib/seedData';
+import { GoogleBusinessProfileCard } from './GoogleBusinessProfileCard';
 
 interface OverviewDashboardProps {
   setActiveTab: (tab: string) => void;
   onOpenDriveBackup: () => void;
+  onOpenVerificationModal?: () => void;
   users: UserProfile[];
   projects: ProjectItem[];
   activeVisitors: number;
@@ -35,6 +37,7 @@ interface OverviewDashboardProps {
 export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   setActiveTab,
   onOpenDriveBackup,
+  onOpenVerificationModal,
   users,
   projects,
   activeVisitors,
@@ -134,13 +137,22 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             Monitor real-time visitor traffic and high-converting client funnels, manage self-service user accounts, and showcase client deliverables directly on the live Service Websites agency website.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 mt-4 sm:mt-5">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 mt-4 sm:mt-5 flex-wrap">
             <button
               onClick={() => setActiveTab('projects')}
               className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-lg shadow-amber-400/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <Briefcase className="w-4 h-4 text-slate-950" />
               <span>Explore All Client Projects ({projects.length})</span>
+            </button>
+
+            <button
+              onClick={onOpenDriveBackup}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              title="Add all client projects to your Google Drive"
+            >
+              <HardDrive className="w-4 h-4 text-cyan-300" />
+              <span>Add All Projects to Google Drive</span>
             </button>
 
             <button
@@ -238,6 +250,71 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             <span>View projects & deliverables</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
           </p>
+        </div>
+      </div>
+
+      {/* Google Integrations: Business Profile + Google Drive Sync */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Google Business Profile Live Link & Metrics Widget */}
+        <GoogleBusinessProfileCard variant="dashboard" />
+
+        {/* Google Drive Projects Cloud Storage Card */}
+        <div className="bg-gradient-to-br from-blue-950/40 via-slate-900 to-indigo-950/30 border border-blue-800/40 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400">
+                  <HardDrive className="w-5 h-5 text-cyan-300" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-white">Google Drive Cloud Storage</h3>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      Enabled
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Target Folder: <strong className="text-slate-200">Service Websites - Client Projects</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed mb-3">
+              Safely backup and organize all client projects in your Google Drive. Includes full JSON database exports and executive reports with client deliverables and budgets.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+              <div className="p-2.5 rounded-xl bg-slate-950/50 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block">Total Projects</span>
+                <span className="text-base font-bold text-white">{projects.length} Projects</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-950/50 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block">Google Drive API</span>
+                <span className="text-base font-bold text-emerald-400">v3 (drive.file)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+            <button
+              onClick={onOpenDriveBackup}
+              className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-blue-500/25 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <HardDrive className="w-3.5 h-3.5" />
+              <span>Add All Projects to Google Drive</span>
+            </button>
+            <a
+              href="https://drive.google.com/drive/my-drive"
+              target="_blank"
+              rel="noreferrer"
+              className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors"
+              title="Open Google Drive"
+            >
+              <span>My Drive</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
         </div>
       </div>
 

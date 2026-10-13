@@ -6,6 +6,10 @@ import {
   signOut,
   User as FirebaseUser,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -23,10 +27,16 @@ export const db = (firebaseConfig as any).firestoreDatabaseId
   : getFirestore(app);
 export const auth = getAuth(app);
 
-// Google Auth Provider setup with Drive scope for Google Drive integration
+// Clean Google Auth Provider for standard app sign-in (NO sensitive Drive scopes)
 export const googleProvider = new GoogleAuthProvider();
-googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
 googleProvider.setCustomParameters({
+  prompt: 'select_account',
+});
+
+// Dedicated Google Drive Auth Provider with Drive file scope used ONLY for Drive integration
+export const googleDriveProvider = new GoogleAuthProvider();
+googleDriveProvider.addScope('https://www.googleapis.com/auth/drive.file');
+googleDriveProvider.setCustomParameters({
   prompt: 'select_account',
 });
 
@@ -103,21 +113,56 @@ export function handleFirestoreError(
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Sign-In with Google Popup and obtain access token
+// Sign-In with Google Popup (Clean standard sign-in for users)
 export async function signInWithGoogle(): Promise<{
   user: FirebaseUser;
   accessToken: string | null;
-}> {
+} | null> {
   try {
     const result = await signInWithPopup(auth, googleProvider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    const accessToken = credential?.accessToken || null;
+    return { user: result.user, accessToken };
+  } catch (error: any) {
+    const errorCode = error?.code || '';
+    // Gracefully handle user closing popup, request cancellation, or iframe blocker
+    if (
+      errorCode === 'auth/popup-closed-by-user' ||
+      errorCode === 'auth/cancelled-popup-request' ||
+      errorCode === 'auth/popup-blocked' ||
+      (typeof error?.message === 'string' && error.message.includes('popup-closed-by-user'))
+    ) {
+      return null;
+    }
+    console.warn('Google sign-in notice:', error?.message || error);
+    throw error;
+  }
+}
+
+// Sign-In with Google for Drive (Specifically requests drive.file scope when syncing to Google Drive)
+export async function signInWithGoogleForDrive(): Promise<{
+  user: FirebaseUser;
+  accessToken: string | null;
+} | null> {
+  try {
+    const result = await signInWithPopup(auth, googleDriveProvider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     const accessToken = credential?.accessToken || null;
     if (accessToken) {
       setCachedDriveAccessToken(accessToken);
     }
     return { user: result.user, accessToken };
-  } catch (error) {
-    console.error('Sign-in error:', error);
+  } catch (error: any) {
+    const errorCode = error?.code || '';
+    if (
+      errorCode === 'auth/popup-closed-by-user' ||
+      errorCode === 'auth/cancelled-popup-request' ||
+      errorCode === 'auth/popup-blocked' ||
+      (typeof error?.message === 'string' && error.message.includes('popup-closed-by-user'))
+    ) {
+      return null;
+    }
+    console.warn('Google Drive sign-in notice:', error?.message || error);
     throw error;
   }
 }

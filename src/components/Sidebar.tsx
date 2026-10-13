@@ -8,9 +8,11 @@ import {
   HardDrive,
   Sparkles,
   ExternalLink,
+  LogOut,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { GOOGLE_BUSINESS_PROFILE } from '../lib/googleBusinessProfile';
 
 interface SidebarProps {
   activeTab: string;
@@ -27,7 +29,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userCount,
   projectCount,
 }) => {
-  const { user, profile } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -179,6 +181,70 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
 
+          {/* Google Business Profile Quick Card */}
+          <div
+            className={`rounded-2xl border p-3.5 transition-colors ${
+              isLight ? 'bg-gradient-to-br from-blue-50/70 to-white border-blue-200 shadow-xs' : 'bg-slate-900/60 border-blue-500/30'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-blue-600 text-white font-bold text-[9px] flex items-center justify-center shadow-xs">
+                  G
+                </span>
+                <span className="text-[10px] uppercase tracking-wider font-bold text-blue-600 dark:text-blue-400">
+                  Google Profile
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-amber-500">5.0 ★</span>
+            </div>
+            <div className={`text-xs font-bold truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>
+              Service Websites Agency
+            </div>
+            <p className={`text-[10px] mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              Moumo St, Rustenburg · 47 Reviews
+            </p>
+            <a
+              href={GOOGLE_BUSINESS_PROFILE.shareUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition-colors shadow-xs"
+            >
+              <span>Open on Google</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
+          {/* Google Drive Projects Backup Card */}
+          <div
+            className={`rounded-2xl border p-3.5 transition-colors ${
+              isLight ? 'bg-gradient-to-br from-blue-50/70 to-white border-blue-200 shadow-xs' : 'bg-slate-900/60 border-blue-500/30'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <HardDrive className="w-4 h-4 text-blue-500" />
+                <span className="text-[10px] uppercase tracking-wider font-bold text-blue-600 dark:text-blue-400">
+                  Google Drive
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-500">API v3</span>
+            </div>
+            <div className={`text-xs font-bold truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>
+              Client Projects Drive Backup
+            </div>
+            <p className={`text-[10px] mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              Synchronize all {projectCount} projects to your Google Drive
+            </p>
+            <button
+              onClick={onOpenDriveBackup}
+              className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
+            >
+              <HardDrive className="w-3 h-3" />
+              <span>Add All to Google Drive</span>
+            </button>
+          </div>
+
           {/* Agency Website Reference Card */}
           <div
             className={`rounded-2xl border p-4 transition-colors ${
@@ -214,6 +280,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Real-time analytics beacon active. High-converting client funnels monitored.
             </p>
           </div>
+
+          {/* User Account & Direct Log Out Button */}
+          {(user || profile) && (
+            <div
+              className={`rounded-2xl border p-3.5 transition-colors ${
+                isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/60 border-slate-800/80'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 mb-2.5">
+                <div className="w-8 h-8 rounded-full bg-amber-400/20 border border-amber-400/40 overflow-hidden shrink-0">
+                  <img
+                    src={
+                      profile?.photoURL ||
+                      user?.photoURL ||
+                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'
+                    }
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold truncate">
+                    {profile?.displayName || user?.displayName || 'Service Websites'}
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">
+                    {user?.email || profile?.email || 'manager@servicewebsites.co.za'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="w-full py-2 px-3 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </aside>
