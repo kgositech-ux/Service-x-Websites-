@@ -13,6 +13,8 @@ import {
 } from 'firebase/auth';
 import {
   getFirestore,
+  initializeFirestore,
+  Firestore,
   doc,
   getDocFromServer,
 } from 'firebase/firestore';
@@ -21,10 +23,28 @@ import firebaseConfig from '../../firebase-applet-config.json';
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);
 
-// CRITICAL: getFirestore must use the explicit database ID if present
-export const db = (firebaseConfig as any).firestoreDatabaseId
-  ? getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
-  : getFirestore(app);
+const firestoreDatabaseId: string | undefined =
+  (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId || undefined;
+
+// CRITICAL: initializeFirestore with the explicit database ID and auto-detect long polling
+// prevents 10-second WebChannel timeouts in mobile browsers and strict iframe proxies.
+function createFirestoreInstance(): Firestore {
+  try {
+    return firestoreDatabaseId
+      ? initializeFirestore(
+          app,
+          { experimentalAutoDetectLongPolling: true },
+          firestoreDatabaseId
+        )
+      : initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  } catch {
+    return firestoreDatabaseId
+      ? getFirestore(app, firestoreDatabaseId)
+      : getFirestore(app);
+  }
+}
+
+export const db: Firestore = createFirestoreInstance();
 export const auth = getAuth(app);
 
 // Clean Google Auth Provider for standard app sign-in (NO sensitive Drive scopes)
@@ -51,13 +71,19 @@ export const getCachedDriveAccessToken = (): string | null => {
   return cachedDriveAccessToken;
 };
 
-// Test connection silently if needed
+// Startup Firestore connection check
 export async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch {
-    // Non-fatal check
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration.');
+    }
   }
+}
+
+if (typeof window !== 'undefined') {
+  void testConnection();
 }
 
 // Structured Firestore error handling conforming to FirestoreErrorInfo

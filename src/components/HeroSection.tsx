@@ -3,11 +3,9 @@ import {
   MessageCircle,
   Phone,
   ArrowRight,
-  BookOpen,
   Layers,
   Zap,
 } from 'lucide-react';
-import { HeroReportsCharts } from './HeroReportsCharts';
 
 export interface HeroPortfolioSlide {
   id: string;
@@ -129,7 +127,6 @@ interface HeroSectionProps {
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
-  onOpenDashboard,
   allProjectsCount,
 }) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -309,21 +306,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <span>Portfolios, Use Cases and Case Studies ({allProjectsCount})</span>
             <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
           </a>
-
-          {/* Knowledge Base Link */}
-          <button
-            onClick={onOpenDashboard}
-            className="px-4 sm:px-5 py-3.5 rounded-2xl bg-slate-900/50 hover:bg-slate-800/80 text-slate-300 border border-slate-800 backdrop-blur-md font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0"
-          >
-            <BookOpen className="w-4 h-4 text-cyan-400" />
-            <span>Knowledge Base</span>
-          </button>
         </div>
-      </div>
-
-      {/* Graphic Performance & Search Reports Charts (Replaces Status Bar) */}
-      <div className="relative z-20 px-4 sm:px-6 md:px-10 pb-5">
-        <HeroReportsCharts />
       </div>
 
       {/* =========================================================================

@@ -26,6 +26,7 @@ import {
 import { LandingPageItem, LANDING_PAGES, LANDING_PAGE_CATEGORIES } from '../lib/landingPagesData';
 import { GOOGLE_BUSINESS_PROFILE } from '../lib/googleBusinessProfile';
 import { useTheme } from '../context/ThemeContext';
+import { HeroReportsCharts } from './HeroReportsCharts';
 
 interface LandingPageViewProps {
   page: LandingPageItem;
@@ -264,6 +265,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </div>
           </div>
         </section>
+
+        {/* Client Performance & Search Reports (Displayed on Use Cases page) */}
+        {page.slug === 'use-cases' && (
+          <section
+            id="client-performance-reports"
+            className="rounded-3xl bg-slate-950 text-white border border-slate-800 p-4 sm:p-6 shadow-xl"
+          >
+            <HeroReportsCharts standalone />
+          </section>
+        )}
 
         {/* Detailed Overview */}
         <section

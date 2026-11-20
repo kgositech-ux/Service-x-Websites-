@@ -121,6 +121,10 @@ function DashboardContent() {
         setUsersList(uList);
       },
       (err) => {
+        if ((err as { code?: string })?.code === 'unavailable') {
+          setUsersList(INITIAL_SAMPLE_USERS);
+          return;
+        }
         handleFirestoreError(err, OperationType.GET, 'users');
       }
     );
@@ -141,6 +145,10 @@ function DashboardContent() {
         }
       },
       (err) => {
+        if ((err as { code?: string })?.code === 'unavailable') {
+          setProjectsList(INITIAL_SAMPLE_PROJECTS(user?.uid || 'manager@servicewebsites.co.za'));
+          return;
+        }
         handleFirestoreError(err, OperationType.GET, 'projects');
       }
     );

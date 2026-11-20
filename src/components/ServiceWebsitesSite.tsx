@@ -1450,6 +1450,58 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
           </div>
         </section>
 
+        {/* Knowledge Base Section (Moved below Our Services) */}
+        <section
+          id="knowledge-base"
+          className={`p-6 sm:p-8 rounded-3xl border flex flex-col sm:flex-row sm:items-center justify-between gap-5 transition-all ${
+            isLight
+              ? 'bg-gradient-to-r from-cyan-50/70 via-white to-slate-50 border-cyan-200/80 shadow-sm'
+              : 'bg-gradient-to-r from-[#0d1626] via-[#111827] to-[#0f172a] border-cyan-500/30'
+          }`}
+        >
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
+              <BookOpen className="w-4 h-4" />
+              <span>Knowledge Base &amp; Analytics Hub</span>
+            </div>
+            <h4
+              className={`text-lg sm:text-2xl font-serif font-bold ${
+                isLight ? 'text-slate-900' : 'text-white'
+              }`}
+            >
+              Knowledge Base: Web Performance, Local SEO &amp; Project Resources
+            </h4>
+            <p className={`text-xs sm:text-sm leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+              Access live site analytics, project documentation, technical SEO guides, and step-by-step resources tailored for Rustenburg and South African businesses.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={onOpenDashboard}
+              className="px-5 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-lg shadow-cyan-500/20 whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Open Knowledge Base</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <a
+              href="#blog"
+              onClick={(e) => {
+                e.preventDefault();
+                handleOpenBlog();
+              }}
+              className={`px-4 py-3 rounded-2xl border font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+                isLight
+                  ? 'bg-white hover:bg-slate-100 border-slate-300 text-slate-800'
+                  : 'bg-slate-900/70 hover:bg-slate-800 border-slate-700 text-slate-200'
+              }`}
+            >
+              <span>SEO, AEO &amp; GEO Guides</span>
+            </a>
+          </div>
+        </section>
+
         {/* HEADING 6: E-Commerce in Detail */}
         <section
           id="ecommerce"
@@ -2093,12 +2145,16 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                   </button>
                 </li>
                 <li>
-                  <button
-                    onClick={() => handleNavigatePage('use-cases')}
-                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
+                  <a
+                    href="#page-use-cases"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleNavigatePage('use-cases');
+                    }}
+                    className="text-left font-semibold text-amber-600 dark:text-amber-300 hover:underline transition-colors cursor-pointer inline-block"
                   >
-                    Use Cases & Solutions
-                  </button>
+                    Use Cases &amp; Performance Reports
+                  </a>
                 </li>
                 <li>
                   <button

@@ -117,7 +117,11 @@ const SPEED_BENCHMARKS: BenchmarkBar[] = [
   },
 ];
 
-export const HeroReportsCharts: React.FC = () => {
+interface HeroReportsChartsProps {
+  standalone?: boolean;
+}
+
+export const HeroReportsCharts: React.FC<HeroReportsChartsProps> = ({ standalone = false }) => {
   const [activeMonthIdx, setActiveMonthIdx] = useState<number>(REPORT_SERIES.length - 1);
   const [hoveredChannelId, setHoveredChannelId] = useState<string | null>(null);
   const [rightPanelMode, setRightPanelMode] = useState<'channels' | 'benchmarks'>('channels');
@@ -167,7 +171,7 @@ export const HeroReportsCharts: React.FC = () => {
 
   return (
     <div
-      className="pt-4 border-t border-slate-800/80 space-y-3"
+      className={standalone ? 'space-y-3' : 'pt-4 border-t border-slate-800/80 space-y-3'}
       aria-label="Agency performance reports and analytics charts"
     >
       {/* Top Report Header Bar */}
