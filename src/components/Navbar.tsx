@@ -214,34 +214,52 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Pill button matching Screenshot 1 */}
-          {/* Pill button for profile */}
-          <button
-            onClick={onOpenAccountModal}
-            className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-              isLight
-                ? 'border-amber-500/50 bg-amber-50 hover:bg-amber-100/60 text-amber-900'
-                : 'border-amber-400/40 bg-amber-400/5 hover:bg-amber-400/15 text-amber-200'
-            }`}
-            title="Open Account Profile & Settings"
-          >
-            <div className="w-6 h-6 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-[10px] font-bold text-amber-500 dark:text-amber-300 overflow-hidden shrink-0">
-              <img
-                src={defaultAvatar}
-                alt="avatar"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80';
-                }}
-              />
-            </div>
-            <span className="hidden md:inline">@{username}</span>
-          </button>
-
-          {/* User Logged In Actions: Direct Log Out Button & Dropdown */}
+          {/* Account Pill & Logged In Actions */}
           {user || profile ? (
             <div className="flex items-center gap-1 sm:gap-1.5">
+              {/* Profile Pill */}
+              <button
+                onClick={onOpenAccountModal}
+                className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border text-xs font-medium transition-all cursor-pointer ${
+                  isLight
+                    ? 'border-amber-500/50 bg-amber-50 hover:bg-amber-100/60 text-amber-900'
+                    : 'border-amber-400/40 bg-amber-400/5 hover:bg-amber-400/15 text-amber-200'
+                }`}
+                title="Open Account Profile & Quick Photo Upload"
+              >
+                <div className="w-6 h-6 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-[10px] font-bold text-amber-500 dark:text-amber-300 overflow-hidden shrink-0">
+                  <img
+                    src={defaultAvatar}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80';
+                    }}
+                  />
+                </div>
+                <span className="hidden md:inline">@{username}</span>
+              </button>
+
+              {/* Direct My Profile Button */}
+              <button
+                onClick={() => {
+                  setViewMode('dashboard');
+                  setActiveTab('profile');
+                }}
+                className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'profile'
+                    ? 'bg-amber-400 text-slate-950 border-amber-400'
+                    : isLight
+                    ? 'border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-800'
+                    : 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-200'
+                }`}
+                title="View & Edit Profile Details and Picture"
+              >
+                <UserCircle className="w-3.5 h-3.5" />
+                <span>My Profile</span>
+              </button>
+
               {/* Direct Visible Log Out Button */}
               <button
                 onClick={() => signOut()}
@@ -255,7 +273,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className={`p-1.5 sm:p-2 rounded-xl border transition-colors ${
+                  className={`p-1.5 sm:p-2 rounded-xl border transition-colors cursor-pointer ${
                     isLight
                       ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
                       : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white'
@@ -282,7 +300,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         {profile?.displayName || user?.displayName || 'Service Websites'}
                       </p>
                       <p className={`text-xs truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {user?.email || profile?.email || 'manager@servicewebsites.co.za'}
+                        {user?.email || profile?.email || ''}
                       </p>
                     </div>
 
@@ -354,7 +372,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'border-slate-700 hover:bg-slate-800 text-slate-200'
                 }`}
               >
-                Sign In
+                Log In
               </button>
               <button
                 onClick={() => (onOpenAuthModal ? onOpenAuthModal('signup') : signIn())}

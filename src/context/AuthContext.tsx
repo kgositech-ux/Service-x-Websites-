@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import {
   User as FirebaseUser,
   onAuthStateChanged,
@@ -9,7 +9,6 @@ import {
 } from 'firebase/auth';
 import {
   doc,
-  getDoc,
   setDoc,
   updateDoc,
   onSnapshot,
@@ -19,20 +18,26 @@ import {
   db,
   signInWithGoogle,
   logOut,
-  handleFirestoreError,
-  OperationType,
 } from '../lib/firebase';
+import { logActivity } from '../lib/activityLogger';
 import { UserProfile } from '../types';
 
-interface AuthResult {
+export interface AuthResult {
   success: boolean;
   error?: string;
+}
+
+interface PendingSignUpDetails {
+  displayName: string;
+  company: string;
+  phone: string;
 }
 
 interface AuthContextType {
   user: FirebaseUser | null;
   profile: UserProfile | null;
   loading: boolean;
+  isAuthenticated: boolean;
   signIn: () => Promise<AuthResult>;
   signInWithEmail: (email: string, password: string) => Promise<AuthResult>;
   signUpWithEmail: (
@@ -45,20 +50,21 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<AuthResult>;
   signInDemo: (role?: 'admin' | 'client') => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfileData: (data: Partial<UserProfile>) => Promise<void>;
+  updateProfileData: (data: Partial<UserProfile>) => Promise<AuthResult>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   loading: true,
+  isAuthenticated: false,
   signIn: async () => ({ success: false }),
   signInWithEmail: async () => ({ success: false }),
   signUpWithEmail: async () => ({ success: false }),
   resetPassword: async () => ({ success: false }),
   signInDemo: async () => {},
   signOut: async () => {},
-  updateProfileData: async () => {},
+  updateProfileData: async () => ({ success: false }),
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -68,7 +74,7 @@ function mapAuthError(err: any): string {
   const code = err?.code || '';
   switch (code) {
     case 'auth/email-already-in-use':
-      return 'An account with this email address already exists. Please sign in instead.';
+      return 'An account with this email address already exists. Please log in instead.';
     case 'auth/invalid-email':
       return 'Please provide a valid email address.';
     case 'auth/weak-password':
@@ -83,6 +89,8 @@ function mapAuthError(err: any): string {
       return 'Too many unsuccessful attempts. Please wait a few moments and try again.';
     case 'auth/network-request-failed':
       return 'Network connection issue. Please check your internet connection.';
+    case 'auth/operation-not-allowed':
+      return 'Email/password sign-in is not enabled on this Firebase project yet. Please sign in with Google or Demo access.';
     case 'auth/popup-closed-by-user':
     case 'auth/cancelled-popup-request':
       return 'Sign-in popup was cancelled.';
@@ -95,15 +103,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const pendingSignUpRef = useRef<Record<string, PendingSignUpDetails>>({});
 
   useEffect(() => {
     let unsubscribeDoc: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (unsubscribeDoc) {
+        unsubscribeDoc();
+        unsubscribeDoc = null;
+      }
+
       setUser(firebaseUser);
 
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
+        const normalizedEmail = (firebaseUser.email || '').trim().toLowerCase();
 
         // Listen to live updates of the logged-in user profile
         unsubscribeDoc = onSnapshot(
@@ -111,34 +126,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           async (snapshot) => {
             if (snapshot.exists()) {
               setProfile(snapshot.data() as UserProfile);
+              delete pendingSignUpRef.current[normalizedEmail];
             } else {
-              // Create initial profile for newly signed-up user
+              const pending = pendingSignUpRef.current[normalizedEmail];
+              const nowIso = new Date().toISOString();
               const newProfile: UserProfile = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email || 'manager@servicewebsites.co.za',
-                displayName: firebaseUser.displayName || 'Service Websites Member',
+                displayName:
+                  pending?.displayName ||
+                  firebaseUser.displayName ||
+                  (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Service Websites Member'),
                 photoURL:
                   firebaseUser.photoURL ||
                   `https://api.dicebear.com/7.x/bottts/svg?seed=${firebaseUser.uid}`,
                 role:
-                  firebaseUser.email === 'manager@servicewebsites.co.za' ||
-                  firebaseUser.email === 'servicewebsites6@gmail.com'
+                  normalizedEmail === 'manager@servicewebsites.co.za' ||
+                  normalizedEmail === 'servicewebsites6@gmail.com'
                     ? 'admin'
                     : 'client',
-                company: 'Service Websites Partner',
-                bio: 'Passionate about high-performing web experiences and digital growth.',
-                phone: '060 137 5180',
+                company: pending?.company || 'Service Websites Partner',
+                bio: 'Client account registered with Service Websites Agency.',
+                phone: pending?.phone || '060 137 5180',
                 status: 'active',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                lastLoginAt: new Date().toISOString(),
+                emailVerified: firebaseUser.emailVerified || false,
+                createdAt: nowIso,
+                updatedAt: nowIso,
+                lastLoginAt: nowIso,
               };
 
               try {
                 await setDoc(userDocRef, newProfile);
                 setProfile(newProfile);
-              } catch (err) {
-                // Non-fatal profile creation fallback
+                delete pendingSignUpRef.current[normalizedEmail];
+                await logActivity({
+                  type: 'user_signup',
+                  title: 'New Account Registered',
+                  description: `${newProfile.displayName} joined Service Websites.`,
+                  actorName: newProfile.displayName,
+                  actorPhoto: newProfile.photoURL,
+                  targetId: newProfile.uid,
+                });
+              } catch {
+                // Local fallback so UI stays responsive even if offline
                 setProfile(newProfile);
               }
             }
@@ -149,10 +179,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         );
       } else {
-        if (unsubscribeDoc) {
-          unsubscribeDoc();
-          unsubscribeDoc = null;
-        }
         setProfile(null);
         setLoading(false);
       }
@@ -164,36 +190,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Standard 1-Click Google Sign In (Clean, standard scopes)
+  // Standard 1-Click Google Sign In
   const signIn = async (): Promise<AuthResult> => {
     setLoading(true);
     try {
       const res = await signInWithGoogle();
       if (!res) {
-        setLoading(false);
         return { success: false, error: 'Sign in was cancelled.' };
+      }
+      try {
+        await updateDoc(doc(db, 'users', res.user.uid), {
+          lastLoginAt: new Date().toISOString(),
+        });
+      } catch {
+        // Doc may be created by onSnapshot listener
       }
       return { success: true };
     } catch (err: any) {
-      setLoading(false);
-      const message = mapAuthError(err);
-      return { success: false, error: message };
+      return { success: false, error: mapAuthError(err) };
     } finally {
       setLoading(false);
     }
   };
 
-  // Sign in with Email & Password
+  // Log in with Email & Password
   const signInWithEmail = async (email: string, password: string): Promise<AuthResult> => {
     setLoading(true);
     try {
       const trimmedEmail = email.trim().toLowerCase();
       const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
       setUser(userCredential.user);
+      try {
+        await updateDoc(doc(db, 'users', userCredential.user.uid), {
+          lastLoginAt: new Date().toISOString(),
+        });
+      } catch {
+        // Non-fatal
+      }
       return { success: true };
     } catch (err: any) {
-      const errorMsg = mapAuthError(err);
-      return { success: false, error: errorMsg };
+      return { success: false, error: mapAuthError(err) };
     } finally {
       setLoading(false);
     }
@@ -208,14 +244,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     phone?: string
   ): Promise<AuthResult> => {
     setLoading(true);
-    try {
-      const trimmedEmail = email.trim().toLowerCase();
-      const trimmedName = name.trim() || 'Service Websites Member';
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedName = name.trim() || 'Service Websites Member';
 
+    // Store pending details before createUserWithEmailAndPassword so onAuthStateChanged doesn't race with defaults
+    pendingSignUpRef.current[trimmedEmail] = {
+      displayName: trimmedName,
+      company: company?.trim() || 'Service Websites Partner',
+      phone: phone?.trim() || '060 137 5180',
+    };
+
+    try {
       const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
       const newUser = userCredential.user;
 
-      // Update auth profile
       const photoURL = `https://api.dicebear.com/7.x/bottts/svg?seed=${newUser.uid}`;
       try {
         await updateAuthProfile(newUser, {
@@ -226,7 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Non-fatal
       }
 
-      // Create profile document in Firestore
+      const nowIso = new Date().toISOString();
       const newProfile: UserProfile = {
         uid: newUser.uid,
         email: trimmedEmail,
@@ -241,14 +283,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         phone: phone?.trim() || '060 137 5180',
         bio: 'Client account registered with Service Websites Agency.',
         status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
+        emailVerified: false,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        lastLoginAt: nowIso,
       };
 
       try {
-        const userDocRef = doc(db, 'users', newUser.uid);
-        await setDoc(userDocRef, newProfile);
+        await setDoc(doc(db, 'users', newUser.uid), newProfile, { merge: true });
       } catch {
         // Non-fatal
       }
@@ -257,8 +299,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(newProfile);
       return { success: true };
     } catch (err: any) {
-      const errorMsg = mapAuthError(err);
-      return { success: false, error: errorMsg };
+      delete pendingSignUpRef.current[trimmedEmail];
+      return { success: false, error: mapAuthError(err) };
     } finally {
       setLoading(false);
     }
@@ -277,7 +319,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Demo Sign-In
   const signInDemo = async (role: 'admin' | 'client' = 'admin') => {
     setLoading(true);
-    const demoUid = 'servicewebsites_admin_demo';
+    const demoUid = role === 'admin' ? 'servicewebsites_admin_demo' : 'servicewebsites_client_demo';
+    const nowIso = new Date().toISOString();
     const demoProfile: UserProfile = {
       uid: demoUid,
       email: role === 'admin' ? 'manager@servicewebsites.co.za' : 'client@servicewebsites.co.za',
@@ -290,16 +333,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       phone: '060 137 5180',
       status: 'active',
       emailVerified: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      lastLoginAt: nowIso,
     };
 
     try {
       const userDocRef = doc(db, 'users', demoUid);
       await setDoc(userDocRef, demoProfile, { merge: true });
     } catch {
-      // Offline fallback
+      // Expected if Firestore rules require auth.uid == userId
     }
 
     setProfile(demoProfile);
@@ -319,31 +362,100 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   };
 
-  // Update Profile Data
-  const updateProfileData = async (updates: Partial<UserProfile>) => {
+  // Update Profile Data (Personal details & Profile picture)
+  const updateProfileData = async (updates: Partial<UserProfile>): Promise<AuthResult> => {
     const activeUid = user?.uid || profile?.uid;
-    if (!activeUid) return;
-
-    const userDocRef = doc(db, 'users', activeUid);
-    const updatedPayload = {
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-
-    try {
-      await updateDoc(userDocRef, updatedPayload);
-
-      if (user && (updates.displayName || updates.photoURL)) {
-        await updateAuthProfile(user, {
-          displayName: updates.displayName ?? user.displayName,
-          photoURL: updates.photoURL ?? user.photoURL,
-        });
-      }
-    } catch {
-      // Offline fallback
+    if (!activeUid) {
+      return { success: false, error: 'You must be logged in to update your profile.' };
     }
 
-    setProfile((prev) => (prev ? { ...prev, ...updates } : null));
+    if (updates.photoURL && updates.photoURL.length > 200000) {
+      return {
+        success: false,
+        error: 'Profile image is too large after compression. Please choose a smaller image.',
+      };
+    }
+
+    const nowIso = new Date().toISOString();
+    const sanitizedUpdates: Partial<UserProfile> = {
+      ...updates,
+      updatedAt: nowIso,
+    };
+    // Never overwrite immutable uid or createdAt on update
+    delete sanitizedUpdates.uid;
+    delete sanitizedUpdates.createdAt;
+
+    const rawProfile: UserProfile = {
+      uid: activeUid,
+      email: (profile?.email || user?.email || 'manager@servicewebsites.co.za').slice(0, 256),
+      displayName: (sanitizedUpdates.displayName ?? profile?.displayName ?? user?.displayName ?? 'Service Websites Member').slice(0, 100),
+      photoURL: sanitizedUpdates.photoURL ?? profile?.photoURL ?? user?.photoURL ?? undefined,
+      role: sanitizedUpdates.role ?? profile?.role ?? 'client',
+      company: (sanitizedUpdates.company ?? profile?.company ?? '').slice(0, 150),
+      bio: (sanitizedUpdates.bio ?? profile?.bio ?? '').slice(0, 500),
+      phone: (sanitizedUpdates.phone ?? profile?.phone ?? '').slice(0, 30),
+      status: profile?.status ?? 'active',
+      emailVerified: sanitizedUpdates.emailVerified ?? profile?.emailVerified ?? user?.emailVerified ?? false,
+      googleVerified: sanitizedUpdates.googleVerified ?? profile?.googleVerified,
+      phoneVerified: sanitizedUpdates.phoneVerified ?? profile?.phoneVerified,
+      verificationCode: sanitizedUpdates.verificationCode ?? profile?.verificationCode,
+      verificationCodeSentAt: sanitizedUpdates.verificationCodeSentAt ?? profile?.verificationCodeSentAt,
+      verificationStatus: sanitizedUpdates.verificationStatus ?? profile?.verificationStatus,
+      createdAt: profile?.createdAt || nowIso,
+      updatedAt: nowIso,
+      lastLoginAt: profile?.lastLoginAt || nowIso,
+    };
+
+    const nextProfile = Object.fromEntries(
+      Object.entries(rawProfile).filter(([, value]) => value !== undefined)
+    ) as UserProfile;
+
+    // Update local state immediately so UI stays responsive
+    setProfile(nextProfile);
+
+    // If real Firebase authenticated user, persist to Firestore & Firebase Auth
+    if (user) {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await setDoc(userDocRef, nextProfile, { merge: true });
+
+        // Firebase Auth profile photoURL only supports short HTTP(S) URLs (<2048 chars), never large data URIs
+        const authPhotoUpdate =
+          updates.photoURL && updates.photoURL.length < 1800 && !updates.photoURL.startsWith('data:')
+            ? updates.photoURL
+            : undefined;
+
+        if (updates.displayName || authPhotoUpdate) {
+          try {
+            await updateAuthProfile(user, {
+              displayName: nextProfile.displayName ?? user.displayName,
+              ...(authPhotoUpdate ? { photoURL: authPhotoUpdate } : {}),
+            });
+          } catch {
+            // Non-fatal Firebase Auth sync warning
+          }
+        }
+
+        await logActivity({
+          type: 'profile_updated',
+          title: updates.photoURL ? 'Profile & Picture Updated' : 'Profile Details Updated',
+          description: `${nextProfile.displayName} updated their personal profile details.`,
+          actorName: nextProfile.displayName,
+          actorPhoto: nextProfile.photoURL,
+          targetId: user.uid,
+        });
+
+        return { success: true };
+      } catch (err: any) {
+        return {
+          success: false,
+          error: err?.message || 'Failed to save profile changes to database.',
+        };
+      }
+    }
+
+    // Demo session local persistence
+    return { success: true };
   };
 
   return (
@@ -352,6 +464,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         profile,
         loading,
+        isAuthenticated: Boolean(user || profile),
         signIn,
         signInWithEmail,
         signUpWithEmail,

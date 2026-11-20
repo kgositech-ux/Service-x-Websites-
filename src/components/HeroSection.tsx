@@ -1,22 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   MessageCircle,
-  ExternalLink,
-  HardDrive,
+  Phone,
   ArrowRight,
-  LayoutDashboard,
-  ChevronLeft,
-  ChevronRight,
-  Pause,
-  Play,
-  Sparkles,
+  BookOpen,
   Layers,
-  ShieldCheck,
   Zap,
-  Star,
-  CheckCircle2,
 } from 'lucide-react';
-import { GOOGLE_BUSINESS_PROFILE } from '../lib/googleBusinessProfile';
+import { HeroReportsCharts } from './HeroReportsCharts';
 
 export interface HeroPortfolioSlide {
   id: string;
@@ -138,13 +129,10 @@ interface HeroSectionProps {
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
-  onOpenDriveBackup,
   onOpenDashboard,
   allProjectsCount,
-  onSelectProject,
 }) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const touchEndXRef = useRef<number | null>(null);
@@ -166,14 +154,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   // Auto sliding carousel interval
   useEffect(() => {
-    if (!isPlaying || isHovered) return;
+    if (isHovered) return;
 
     const timer = setInterval(() => {
       nextSlide();
     }, 5500);
 
     return () => clearInterval(timer);
-  }, [isPlaying, isHovered, nextSlide]);
+  }, [isHovered, nextSlide]);
 
   // Touch swipe support for mobile devices
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -272,53 +260,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <span>Core Web Vitals 100</span>
           </span>
         </div>
-
-        {/* Right: Carousel HUD controls (Prev, Next, Play/Pause, Slide counter) */}
-        <div className="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-slate-700/70 rounded-full px-2.5 py-1 shadow-lg text-xs">
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
-            className="p-1 text-slate-300 hover:text-amber-400 transition-colors cursor-pointer"
-            title={isPlaying ? 'Pause carousel background' : 'Resume carousel background'}
-          >
-            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-          </button>
-
-          <span className="text-slate-500" aria-hidden="true">|</span>
-
-          <button
-            onClick={prevSlide}
-            aria-label="Previous portfolio image"
-            className="p-1 text-slate-300 hover:text-white transition-colors cursor-pointer"
-            title="Previous portfolio work"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <span className="font-mono text-[11px] text-amber-300 font-semibold px-1">
-            {String(currentSlideIndex + 1).padStart(2, '0')}&nbsp;/&nbsp;{String(totalSlides).padStart(2, '0')}
-          </span>
-
-          <button
-            onClick={nextSlide}
-            aria-label="Next portfolio image"
-            className="p-1 text-slate-300 hover:text-white transition-colors cursor-pointer"
-            title="Next portfolio work"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
       </div>
 
       {/* =========================================================================
           MAIN HERO HEADLINE, EDITORIAL INTRO, & CTA ACTION CLUSTER
           ========================================================================= */}
       <div className="relative z-20 px-4 sm:px-6 md:px-10 py-4 sm:py-6 max-w-3xl space-y-5">
-        {/* Subtle Category Kicker */}
-        <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-amber-400 uppercase">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span>Tailored Web Engineering & High-Converting Digital Presence</span>
-        </div>
 
         {/* Semantic H1 Headline for Local SEO & Search Intent */}
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-black tracking-tight leading-[1.1] text-white text-shadow-sm">
@@ -332,7 +279,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* High Impact Action Row */}
         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-2">
-          {/* Primary CTA */}
+          {/* Primary CTA: WhatsApp Quote */}
           <a
             href="https://wa.me/27601375180?text=Hi%20Service%20Websites,%20I%20would%20like%20a%20website%20quote"
             target="_blank"
@@ -343,86 +290,40 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <span>Get a Free WhatsApp Quote</span>
           </a>
 
-          {/* Google Business Profile */}
+          {/* Direct Calls Button */}
           <a
-            href={GOOGLE_BUSINESS_PROFILE.shareUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="px-4 sm:px-5 py-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-white border border-slate-700/80 backdrop-blur-md font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-md hover:border-slate-600"
+            href="tel:0601375180"
+            className="px-4 sm:px-5 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/70 backdrop-blur-md font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20"
+            title="Call Service Websites on 060 137 5180"
           >
-            <span className="w-4 h-4 rounded-full bg-white text-blue-600 flex items-center justify-center font-bold text-[10px]">
-              G
-            </span>
-            <span>Google Business Profile</span>
-            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+            <Phone className="w-4 h-4 fill-white" />
+            <span>Call 060 137 5180</span>
           </a>
 
-          {/* Google Drive Projects Backup */}
-          {onOpenDriveBackup && (
-            <button
-              onClick={onOpenDriveBackup}
-              className="px-4 sm:px-5 py-3.5 rounded-2xl bg-blue-950/60 hover:bg-blue-900/80 text-blue-200 border border-blue-700/60 backdrop-blur-md font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-md cursor-pointer hover:border-blue-500"
-              title="Add all client projects to your Google Drive folder"
-            >
-              <HardDrive className="w-4 h-4 text-blue-400" />
-              <span>Add Projects to Drive</span>
-            </button>
-          )}
-
-          {/* Explore All Portfolio */}
+          {/* Portfolios, Use Cases and Case Studies */}
           <a
             href="#portfolio"
             className="px-4 sm:px-5 py-3.5 rounded-2xl bg-slate-900/60 hover:bg-slate-800/90 text-slate-200 border border-slate-700/60 backdrop-blur-md font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all"
           >
             <Layers className="w-4 h-4 text-amber-400" />
-            <span>Explore All Projects ({allProjectsCount})</span>
+            <span>Portfolios, Use Cases and Case Studies ({allProjectsCount})</span>
             <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
           </a>
 
-          {/* Client Portal Link */}
+          {/* Knowledge Base Link */}
           <button
             onClick={onOpenDashboard}
-            className="px-4 sm:px-5 py-3.5 rounded-2xl bg-slate-900/50 hover:bg-slate-800/80 text-slate-300 border border-slate-800 backdrop-blur-md font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer"
+            className="px-4 sm:px-5 py-3.5 rounded-2xl bg-slate-900/50 hover:bg-slate-800/80 text-slate-300 border border-slate-800 backdrop-blur-md font-semibold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0"
           >
-            <LayoutDashboard className="w-4 h-4 text-cyan-400" />
-            <span>Client Portal</span>
+            <BookOpen className="w-4 h-4 text-cyan-400" />
+            <span>Knowledge Base</span>
           </button>
         </div>
+      </div>
 
-        {/* Agency Trust Bar / Performance Metrics */}
-        <div className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-left border-t border-slate-800/80">
-          <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/40 backdrop-blur-xs border border-slate-800/50">
-            <div className="text-amber-400 font-bold text-xs sm:text-sm flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>&lt; 1.0s Speed</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Google Core Web Vitals 100</p>
-          </div>
-
-          <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/40 backdrop-blur-xs border border-slate-800/50">
-            <div className="text-emerald-400 font-bold text-xs sm:text-sm flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>R8,500 - R42k</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Transparent Fixed Pricing</p>
-          </div>
-
-          <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/40 backdrop-blur-xs border border-slate-800/50">
-            <div className="text-amber-300 font-bold text-xs sm:text-sm flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
-              <span>5.0 Star Rating</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Verified Google Reviews</p>
-          </div>
-
-          <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/40 backdrop-blur-xs border border-slate-800/50">
-            <div className="text-blue-400 font-bold text-xs sm:text-sm flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-              <span>24/7 WhatsApp</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Direct Contractor Dispatch</p>
-          </div>
-        </div>
+      {/* Graphic Performance & Search Reports Charts (Replaces Status Bar) */}
+      <div className="relative z-20 px-4 sm:px-6 md:px-10 pb-5">
+        <HeroReportsCharts />
       </div>
 
       {/* =========================================================================

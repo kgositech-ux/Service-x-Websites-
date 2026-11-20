@@ -35,6 +35,8 @@ import {
   LogOut,
   ChevronDown,
   HelpCircle,
+  UserCircle,
+  BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -44,11 +46,14 @@ import { GoogleBusinessProfileCard } from './GoogleBusinessProfileCard';
 import { HeroSection } from './HeroSection';
 import { LANDING_PAGES, LANDING_PAGE_CATEGORIES, LandingPageItem } from '../lib/landingPagesData';
 import { LandingPageView } from './LandingPageView';
+import { OurBlogPage } from './OurBlogPage';
 
 interface ServiceWebsitesSiteProps {
   projects?: ProjectItem[];
   onOpenAccountModal: () => void;
   onOpenDashboard: () => void;
+  onOpenProfilePage?: () => void;
+  onOpenBlogPage?: () => void;
   onOpenProjectsView?: () => void;
   onOpenDriveBackup?: () => void;
   onOpenVerificationModal?: () => void;
@@ -383,6 +388,8 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
   projects = [],
   onOpenAccountModal,
   onOpenDashboard,
+  onOpenProfilePage,
+  onOpenBlogPage,
   onOpenProjectsView,
   onOpenDriveBackup,
   onOpenVerificationModal,
@@ -394,6 +401,7 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [internalLandingSlug, setInternalLandingSlug] = useState<string | null>(null);
+  const [internalBlogOpen, setInternalBlogOpen] = useState<boolean>(false);
   const [footerCategoryFilter, setFooterCategoryFilter] = useState<string>('all');
   const [footerSearch, setFooterSearch] = useState<string>('');
 
@@ -403,11 +411,22 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
     : null;
 
   const handleNavigatePage = (slug: string) => {
+    setInternalBlogOpen(false);
     if (onOpenLandingPage) {
       onOpenLandingPage(slug);
     } else {
       setInternalLandingSlug(slug);
       window.location.hash = 'page-' + slug;
+    }
+  };
+
+  const handleOpenBlog = () => {
+    if (onOpenBlogPage) {
+      onOpenBlogPage();
+    } else {
+      setInternalLandingSlug(null);
+      setInternalBlogOpen(true);
+      window.location.hash = 'blog';
     }
   };
 
@@ -419,6 +438,19 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   const isLight = theme === 'light';
+
+  // If Our Blog is active in standalone mode, render OurBlogPage
+  if (internalBlogOpen) {
+    return (
+      <OurBlogPage
+        onBack={() => {
+          setInternalBlogOpen(false);
+          window.location.hash = '';
+        }}
+        onOpenLandingPage={(slug) => handleNavigatePage(slug)}
+      />
+    );
+  }
 
   // If a landing page is currently active, render the dedicated LandingPageView
   if (currentLandingPage) {
@@ -592,17 +624,17 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
               </button>
             )}
 
-            {/* Direct Jump to Client Dashboard */}
+            {/* Direct Jump to Knowledge Base */}
             <button
               onClick={onOpenDashboard}
-              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all whitespace-nowrap shrink-0 cursor-pointer ${
                 isLight
                   ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
                   : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-200'
               }`}
             >
-              <LayoutDashboard className="w-3.5 h-3.5 text-cyan-500" />
-              <span>Client Portal</span>
+              <BookOpen className="w-3.5 h-3.5 text-cyan-500" />
+              <span>Knowledge Base</span>
             </button>
 
             {/* Theme switcher toggle */}
@@ -623,50 +655,78 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
               )}
             </button>
 
-            {/* Account pill button */}
-            <button
-              onClick={onOpenAccountModal}
-              className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border text-xs font-medium transition-all group cursor-pointer ${
-                isLight
-                  ? 'border-amber-500/40 bg-amber-50 hover:bg-amber-100/60 text-amber-900'
-                  : 'border-amber-400/40 bg-amber-400/5 hover:bg-amber-400/15 text-amber-200'
-              }`}
-            >
-              <div className="w-6 h-6 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-[10px] font-bold text-amber-500 dark:text-amber-300 overflow-hidden shrink-0">
-                {profile?.photoURL || user?.photoURL ? (
-                  <img
-                    src={profile?.photoURL || user?.photoURL || ''}
-                    alt="avatar"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  '</>'
-                )}
-              </div>
-              <span className="hidden xs:inline">
-                {profile?.displayName
-                  ? `@${profile.displayName.toLowerCase().replace(/\s+/g, '')}`
-                  : 'servicewebsites'}
-              </span>
-            </button>
-
-            {/* Direct Log Out Button if logged in */}
+            {/* Auth & Profile Actions */}
             {user || profile ? (
-              <button
-                onClick={() => signOut()}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold transition-all shadow-xs cursor-pointer"
-                title="Log Out of your account"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Log Out</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                {/* Account pill button */}
+                <button
+                  onClick={onOpenAccountModal}
+                  className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-full border text-xs font-medium transition-all group cursor-pointer ${
+                    isLight
+                      ? 'border-amber-500/40 bg-amber-50 hover:bg-amber-100/60 text-amber-900'
+                      : 'border-amber-400/40 bg-amber-400/5 hover:bg-amber-400/15 text-amber-200'
+                  }`}
+                  title="Quick Account Profile & Photo"
+                >
+                  <div className="w-6 h-6 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-[10px] font-bold text-amber-500 dark:text-amber-300 overflow-hidden shrink-0">
+                    {profile?.photoURL || user?.photoURL ? (
+                      <img
+                        src={profile?.photoURL || user?.photoURL || ''}
+                        alt="avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      '</>'
+                    )}
+                  </div>
+                  <span className="hidden xs:inline">
+                    @{(profile?.displayName || user?.displayName || 'member').toLowerCase().replace(/\s+/g, '')}
+                  </span>
+                </button>
+
+                {/* Direct jump to Profile Page */}
+                <button
+                  onClick={() => (onOpenProfilePage ? onOpenProfilePage() : onOpenAccountModal())}
+                  className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                    isLight
+                      ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'
+                      : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-200'
+                  }`}
+                  title="View & Edit Profile Details & Picture"
+                >
+                  <UserCircle className="w-3.5 h-3.5 text-cyan-500" />
+                  <span>My Profile</span>
+                </button>
+
+                {/* Log Out */}
+                <button
+                  onClick={() => signOut()}
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  title="Log Out of your account"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Log Out</span>
+                </button>
+              </div>
             ) : (
-              <button
-                onClick={() => (onOpenAuthModal ? onOpenAuthModal('signup') : onOpenAccountModal())}
-                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-md transition-all shrink-0 cursor-pointer"
-              >
-                Sign Up / Sign In
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => (onOpenAuthModal ? onOpenAuthModal('signin') : onOpenAccountModal())}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                    isLight
+                      ? 'border-slate-300 hover:bg-slate-100 text-slate-800'
+                      : 'border-slate-700 hover:bg-slate-800 text-slate-200'
+                  }`}
+                >
+                  Log In
+                </button>
+                <button
+                  onClick={() => (onOpenAuthModal ? onOpenAuthModal('signup') : onOpenAccountModal())}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-md transition-all shrink-0 cursor-pointer"
+                >
+                  Sign Up
+                </button>
+              </div>
             )}
 
             {/* Hamburger / Navigation button */}
@@ -709,7 +769,19 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                 }}
                 className="p-2 text-left text-amber-600 dark:text-amber-300 font-bold hover:bg-amber-400/10 rounded-lg flex items-center gap-1.5 col-span-2 cursor-pointer"
               >
-                <span>📊 Client Dashboard & Analytics</span>
+                <BookOpen className="w-4 h-4 text-cyan-500" />
+                <span>Knowledge Base &amp; Analytics</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleOpenBlog();
+                }}
+                className="p-2 text-left text-blue-600 dark:text-amber-300 font-bold hover:bg-blue-500/10 rounded-lg flex items-center gap-1.5 col-span-2 cursor-pointer"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Our Blog: SEO, AEO & GEO AI Search Guide</span>
               </button>
               <a
                 href="#footer"
@@ -720,27 +792,52 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
               </a>
 
               {user || profile ? (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    signOut();
-                  }}
-                  className="p-2 text-left text-rose-500 font-bold hover:bg-rose-500/10 rounded-lg flex items-center gap-1.5 col-span-2 cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4 text-rose-500" />
-                  <span>Log Out of Account</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      if (onOpenProfilePage) onOpenProfilePage();
+                      else onOpenAccountModal();
+                    }}
+                    className="p-2 text-left text-cyan-600 dark:text-cyan-400 font-bold hover:bg-cyan-500/10 rounded-lg flex items-center gap-1.5 col-span-2 cursor-pointer"
+                  >
+                    <UserCircle className="w-4 h-4 text-cyan-500" />
+                    <span>My Profile & Picture Settings</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      signOut();
+                    }}
+                    className="p-2 text-left text-rose-500 font-bold hover:bg-rose-500/10 rounded-lg flex items-center gap-1.5 col-span-2 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-500" />
+                    <span>Log Out of Account</span>
+                  </button>
+                </>
               ) : (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    if (onOpenAuthModal) onOpenAuthModal('signup');
-                    else onOpenAccountModal();
-                  }}
-                  className="p-2 text-left text-amber-400 font-bold hover:bg-amber-400/10 rounded-lg flex items-center gap-1.5 col-span-2 cursor-pointer"
-                >
-                  <span>🔐 Sign Up / Sign In</span>
-                </button>
+                <div className="col-span-2 flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      if (onOpenAuthModal) onOpenAuthModal('signin');
+                      else onOpenAccountModal();
+                    }}
+                    className="flex-1 p-2 text-center border border-slate-300 dark:border-slate-700 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                  >
+                    Log In
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      if (onOpenAuthModal) onOpenAuthModal('signup');
+                      else onOpenAccountModal();
+                    }}
+                    className="flex-1 p-2 text-center bg-amber-400 text-slate-950 font-bold hover:bg-amber-300 rounded-lg cursor-pointer"
+                  >
+                    Sign Up
+                  </button>
+                </div>
               )}
             </div>
 
@@ -832,7 +929,7 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                   isLight ? 'text-slate-900' : 'text-white'
                 }`}
               >
-                All Client Projects on Website
+                Portfolios, Use Cases and Case Studies
               </h3>
               <p
                 className={`text-xs sm:text-sm leading-relaxed max-w-xl ${
@@ -1967,6 +2064,19 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                   </button>
                 </li>
                 <li>
+                  <a
+                    href="#blog"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleOpenBlog();
+                    }}
+                    className="text-left font-bold text-amber-600 dark:text-amber-300 hover:underline transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>Our Blog (SEO, AEO & GEO)</span>
+                  </a>
+                </li>
+                <li>
                   <button
                     onClick={() => handleNavigatePage('why-choose-us')}
                     className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
@@ -2008,7 +2118,7 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                     onClick={onOpenDashboard}
                     className="text-left font-semibold text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer"
                   >
-                    Client Management Portal
+                    Knowledge Base
                   </button>
                 </li>
               </ul>
@@ -2252,6 +2362,45 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                 </li>
               </ul>
             </div>
+          </div>
+
+          {/* Featured Footer Callout: Our Blog (SEO, AEO & GEO Topical Authority Hub) */}
+          <div
+            className={`p-5 sm:p-6 rounded-2xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+              isLight
+                ? 'bg-gradient-to-r from-blue-50 via-white to-amber-50/60 border-blue-200 shadow-2xs'
+                : 'bg-gradient-to-r from-[#0e172a] via-[#111827] to-[#1a1625] border-blue-500/30'
+            }`}
+          >
+            <div className="space-y-1.5 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-blue-600 dark:text-amber-400">
+                <span>Our Blog</span>
+                <span aria-hidden="true">·</span>
+                <span>Topical Authority & AI Search Trust</span>
+              </div>
+              <h4
+                className={`font-serif font-bold text-base sm:text-lg ${
+                  isLight ? 'text-slate-950' : 'text-white'
+                }`}
+              >
+                Win Both the Google Click and the AI Citation (SEO, AEO & GEO)
+              </h4>
+              <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                Read how we structure websites for Google AI Overviews, ChatGPT, Gemini, and Perplexity—covering all 9 SEO, AEO & GEO disciplines, entity consistency, and free 30-minute audits.
+              </p>
+            </div>
+            <a
+              href="#blog"
+              onClick={(e) => {
+                e.preventDefault();
+                handleOpenBlog();
+              }}
+              className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs inline-flex items-center gap-2 whitespace-nowrap shrink-0 shadow-sm transition-colors cursor-pointer"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Read Our Blog</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
           </div>
 
           {/* Interactive Landing Pages Directory & Search Grid */}

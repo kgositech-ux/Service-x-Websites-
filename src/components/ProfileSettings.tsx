@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   User,
   Camera,
@@ -6,17 +6,25 @@ import {
   Sparkles,
   Save,
   CheckCircle2,
-  Mail,
   Building,
   Phone,
   Shield,
+  ShieldCheck,
   RotateCcw,
   HardDrive,
   ExternalLink,
-  Lock,
+  LogOut,
+  AlertCircle,
+  Loader2,
+  Trash2,
+  Calendar,
+  Mail,
+  LogIn,
+  UserPlus,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getCachedDriveAccessToken, signInWithGoogle } from '../lib/firebase';
+import { useTheme } from '../context/ThemeContext';
+import { compressProfileImage } from '../lib/imageUtils';
 import { GOOGLE_BUSINESS_PROFILE } from '../lib/googleBusinessProfile';
 
 const PRESET_AVATARS = [
@@ -30,10 +38,17 @@ const PRESET_AVATARS = [
 
 interface ProfileSettingsProps {
   onOpenVerificationModal?: () => void;
+  onOpenAuthModal?: (tab?: 'signin' | 'signup') => void;
 }
 
-export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerificationModal }) => {
-  const { user, profile, updateProfileData, signIn } = useAuth();
+export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
+  onOpenVerificationModal,
+  onOpenAuthModal,
+}) => {
+  const { user, profile, updateProfileData, signIn, signOut } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [displayName, setDisplayName] = useState('');
   const [photoURL, setPhotoURL] = useState('');
@@ -43,9 +58,15 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerifica
   const [role, setRole] = useState<'client' | 'developer' | 'manager' | 'admin'>('client');
   const [customUrlInput, setCustomUrlInput] = useState('');
 
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savedSuccess, setSavedSuccess] = useState(false);
-  const [hasDriveToken, setHasDriveToken] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const activeUid = profile?.uid || user?.uid || 'member';
+  const activeEmail = profile?.email || user?.email || '';
+  const fallbackAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${activeUid}`;
 
   useEffect(() => {
     if (profile) {
@@ -59,182 +80,399 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerifica
       setDisplayName(user.displayName || '');
       setPhotoURL(user.photoURL || '');
     }
-
-    setHasDriveToken(Boolean(getCachedDriveAccessToken()));
   }, [profile, user]);
 
-  // Handle local image file upload & convert to compressed data URI
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const showToast = (msg: string) => {
+    setErrorMsg(null);
+    setSavedSuccess(msg);
+    setTimeout(() => setSavedSuccess(null), 3500);
+  };
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert('File size exceeds 2MB limit. Please select a smaller photo.');
+  // Compress and immediately preview/save uploaded picture
+  const processSelectedFile = async (file: File) => {
+    setErrorMsg(null);
+    setUploadingPhoto(true);
+    try {
+      const compressedDataUri = await compressProfileImage(file, 256, 0.85);
+      setPhotoURL(compressedDataUri);
+      const res = await updateProfileData({ photoURL: compressedDataUri });
+      if (res.success) {
+        showToast('Profile picture uploaded and saved!');
+      } else {
+        setErrorMsg(res.error || 'Could not save uploaded picture.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Unable to process image file.');
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await processSelectedFile(file);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await processSelectedFile(file);
+    }
+  };
+
+  const handleQuickPhotoUpdate = async (newUrl: string, toastLabel: string) => {
+    setErrorMsg(null);
+    setPhotoURL(newUrl);
+    setSaving(true);
+    const res = await updateProfileData({ photoURL: newUrl });
+    setSaving(false);
+    if (res.success) {
+      showToast(toastLabel);
+    } else {
+      setErrorMsg(res.error || 'Failed to update profile picture.');
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user && !profile) return;
+
+    const trimmedName = displayName.trim();
+    if (!trimmedName) {
+      setErrorMsg('Display Name cannot be empty.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUri = event.target?.result as string;
-      if (dataUri) {
-        setPhotoURL(dataUri);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Reset to original Google photo
-  const handleResetGooglePhoto = () => {
-    if (user?.photoURL) {
-      setPhotoURL(user.photoURL);
-    }
-  };
-
-  // Save changes
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
+    setErrorMsg(null);
     setSaving(true);
-    try {
-      await updateProfileData({
-        displayName,
-        photoURL,
-        company,
-        phone,
-        bio,
-        role,
-      });
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.error('Failed to save profile:', err);
-      alert('Error updating profile. Please check console logs.');
-    } finally {
-      setSaving(false);
+    const res = await updateProfileData({
+      displayName: trimmedName,
+      photoURL: photoURL || fallbackAvatar,
+      company: company.trim(),
+      phone: phone.trim(),
+      bio: bio.trim(),
+      role,
+    });
+    setSaving(false);
+
+    if (res.success) {
+      showToast('Profile details and picture updated successfully!');
+    } else {
+      setErrorMsg(res.error || 'Failed to save profile changes.');
     }
   };
 
-  if (!user) {
+  // Logged-out auth gate
+  if (!user && !profile) {
     return (
-      <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-8 text-center max-w-lg mx-auto">
-        <div className="w-16 h-16 rounded-full bg-blue-500/10 text-cyan-400 mx-auto flex items-center justify-center mb-4">
+      <div
+        className={`rounded-2xl border p-8 text-center max-w-lg mx-auto transition-colors ${
+          isLight
+            ? 'bg-white border-slate-200 shadow-lg text-slate-900'
+            : 'bg-slate-900/60 border-slate-800 text-white'
+        }`}
+      >
+        <div className="w-16 h-16 rounded-2xl bg-amber-400/15 text-amber-500 dark:text-amber-400 mx-auto flex items-center justify-center mb-4 border border-amber-400/30">
           <User className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Self-Managing Account Portal</h2>
-        <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-          Sign in with Google to manage your account details, personalize your profile picture, track commissioned web projects, and connect with Google Drive.
-        </p>
-        <button
-          onClick={() => signIn()}
-          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-lg shadow-blue-500/25 transition-all inline-flex items-center gap-2"
+        <h2 className="text-xl font-bold font-serif mb-2">Your Personal Profile & Settings</h2>
+        <p
+          className={`text-xs mb-6 leading-relaxed ${
+            isLight ? 'text-slate-600' : 'text-slate-400'
+          }`}
         >
-          <span>Sign in with Google</span>
-        </button>
+          Sign up or log in to view and edit your personal details, upload a custom profile picture, and manage your Service Websites projects.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => (onOpenAuthModal ? onOpenAuthModal('signup') : signIn())}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-lg shadow-amber-400/20 transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Sign Up</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => (onOpenAuthModal ? onOpenAuthModal('signin') : signIn())}
+            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl border font-semibold text-xs transition-all inline-flex items-center justify-center gap-2 cursor-pointer ${
+              isLight
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+                : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-white'
+            }`}
+          >
+            <LogIn className="w-4 h-4" />
+            <span>Log In</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => signIn()}
+            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl border font-semibold text-xs transition-all inline-flex items-center justify-center gap-2 cursor-pointer ${
+              isLight
+                ? 'bg-white hover:bg-slate-50 border-slate-300 text-slate-800'
+                : 'bg-slate-950 hover:bg-slate-800 border-slate-700 text-slate-200'
+            }`}
+          >
+            <span>Google Sign-In</span>
+          </button>
+        </div>
       </div>
     );
   }
 
+  const cardClass = `rounded-2xl border p-5 sm:p-6 transition-colors ${
+    isLight
+      ? 'bg-white border-slate-200 shadow-sm'
+      : 'bg-slate-900/60 border-slate-800 backdrop-blur-md'
+  }`;
+
+  const inputClass = `w-full rounded-xl border px-3.5 py-2 text-xs transition-colors focus:outline-none ${
+    isLight
+      ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:bg-white'
+      : 'bg-slate-950 border-slate-700/80 text-white placeholder-slate-500 focus:border-cyan-500'
+  }`;
+
+  const disabledInputClass = `w-full rounded-xl border px-3.5 py-2 text-xs cursor-not-allowed ${
+    isLight
+      ? 'bg-slate-100 border-slate-200 text-slate-500'
+      : 'bg-slate-950/60 border-slate-800 text-slate-400'
+  }`;
+
+  const labelClass = `font-semibold block mb-1.5 text-xs ${
+    isLight ? 'text-slate-700' : 'text-slate-300'
+  }`;
+
+  const usernameHandle = (displayName || profile?.displayName || 'member')
+    .toLowerCase()
+    .replace(/\s+/g, '');
+
+  const memberSince = profile?.createdAt
+    ? new Date(profile.createdAt).toLocaleDateString('en-ZA', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : 'Active Member';
+
+  const isVerified = Boolean(profile?.googleVerified || profile?.emailVerified || user?.emailVerified);
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Toast Alert */}
+      {/* Success Toast */}
       {savedSuccess && (
         <div className="fixed bottom-5 right-5 z-50 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-semibold animate-in slide-in-from-bottom duration-200">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>Profile and picture updated successfully!</span>
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{savedSuccess}</span>
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-slate-900/70 backdrop-blur-md p-6 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <span>Account Profile & Picture Settings</span>
-          </h1>
-          <p className="text-xs text-slate-400">
-            Manage your personal profile, role permissions, and customized display picture
-          </p>
+      {/* Error Banner */}
+      {errorMsg && (
+        <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 font-medium">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMsg(null)}
+            className="text-[11px] font-bold underline cursor-pointer"
+          >
+            Dismiss
+          </button>
         </div>
+      )}
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>Active Account</span>
-          </span>
+      {/* Profile Overview & Summary Card */}
+      <div className={cardClass}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <img
+              src={photoURL || fallbackAvatar}
+              alt={displayName || 'Profile Avatar'}
+              className="w-16 h-16 rounded-2xl object-cover ring-2 ring-amber-400/60 shadow-md shrink-0 bg-slate-800"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = fallbackAvatar;
+              }}
+            />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className={`text-lg sm:text-xl font-bold font-serif ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  {displayName || 'Your Profile'}
+                </h1>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-400/15 text-amber-600 dark:text-amber-300 border border-amber-400/30 font-semibold capitalize">
+                  {role}
+                </span>
+              </div>
+              <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mt-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                <span>@{usernameHandle}</span>
+                {activeEmail && (
+                  <span className="inline-flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5" />
+                    {activeEmail}
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Joined {memberSince}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
+            {isVerified ? (
+              <span className="text-xs px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Verified</span>
+              </span>
+            ) : (
+              onOpenVerificationModal && (
+                <button
+                  type="button"
+                  onClick={onOpenVerificationModal}
+                  className="text-xs px-3 py-1.5 rounded-xl bg-amber-400/15 text-amber-600 dark:text-amber-300 border border-amber-400/30 font-semibold flex items-center gap-1.5 hover:bg-amber-400/25 transition-colors cursor-pointer"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Verify Account</span>
+                </button>
+              )
+            )}
+
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="text-xs px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out</span>
+            </button>
+          </div>
         </div>
       </div>
 
       <form onSubmit={handleSaveProfile} className="space-y-6">
-        {/* Editable Profile Picture Card */}
-        <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-6 space-y-5">
-          <div className="flex items-center justify-between">
+        {/* Profile Picture Upload & Settings Panel */}
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          className={`${cardClass} space-y-5 transition-all ${
+            isDragging ? 'ring-2 ring-cyan-500 border-cyan-500' : ''
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Camera className="w-4 h-4 text-cyan-400" />
-                <span>Editable Profile Picture</span>
+              <h3 className={`text-sm font-bold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                <Camera className="w-4 h-4 text-cyan-500" />
+                <span>Profile Picture Settings</span>
               </h3>
-              <p className="text-xs text-slate-400">
-                Your profile picture is displayed across the agency dashboard, comments, and project deliverables
+              <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                Upload a photo from your device (auto-cropped & compressed), drag-and-drop here, or select an avatar style.
               </p>
             </div>
-            {user.photoURL && photoURL !== user.photoURL && (
-              <button
-                type="button"
-                onClick={handleResetGooglePhoto}
-                className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Revert to Google Photo</span>
-              </button>
-            )}
+
+            <div className="flex items-center gap-3">
+              {user?.photoURL && photoURL !== user.photoURL && (
+                <button
+                  type="button"
+                  onClick={() => handleQuickPhotoUpdate(user.photoURL!, 'Reverted to Google photo!')}
+                  className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Revert to Google Photo</span>
+                </button>
+              )}
+              {photoURL && photoURL !== fallbackAvatar && (
+                <button
+                  type="button"
+                  onClick={() => handleQuickPhotoUpdate(fallbackAvatar, 'Profile picture reset to default avatar.')}
+                  className="text-xs text-rose-500 hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Reset Photo</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-6 pt-2">
-            {/* Live Profile Image Avatar Preview */}
+          <div className="flex flex-col sm:flex-row items-center gap-6 pt-1">
+            {/* Live Profile Image Preview */}
             <div className="relative group shrink-0">
               <img
-                src={photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`}
+                src={photoURL || fallbackAvatar}
                 alt={displayName || 'Profile Avatar'}
-                className="w-28 h-28 rounded-2xl object-cover ring-4 ring-cyan-500/40 shadow-xl bg-slate-800"
+                className={`w-28 h-28 rounded-2xl object-cover ring-4 ring-cyan-500/40 shadow-xl ${
+                  isLight ? 'bg-slate-100' : 'bg-slate-800'
+                }`}
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`;
+                  (e.target as HTMLImageElement).src = fallbackAvatar;
                 }}
               />
-              <label
-                htmlFor="photoUploadInput"
-                className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-xs font-medium gap-1"
-              >
-                <Upload className="w-5 h-5 text-cyan-400" />
-                <span>Upload Photo</span>
-              </label>
+              {uploadingPhoto && (
+                <div className="absolute inset-0 bg-slate-950/70 rounded-2xl flex flex-col items-center justify-center text-white text-[11px] font-semibold gap-1">
+                  <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
+                  <span>Processing...</span>
+                </div>
+              )}
+              {!uploadingPhoto && (
+                <label
+                  htmlFor="photoUploadInput"
+                  className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-opacity text-white text-xs font-medium gap-1"
+                >
+                  <Upload className="w-5 h-5 text-cyan-400" />
+                  <span>Change Photo</span>
+                </label>
+              )}
               <input
+                ref={fileInputRef}
                 id="photoUploadInput"
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 onChange={handleFileUpload}
                 className="hidden"
               />
             </div>
 
-            {/* Actions for picture */}
+            {/* Picture Actions */}
             <div className="flex-1 space-y-3 w-full">
               <div className="flex flex-wrap items-center gap-2">
                 <label
                   htmlFor="photoUploadInput"
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all border border-slate-700"
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all border ${
+                    isLight
+                      ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+                      : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+                  }`}
                 >
-                  <Upload className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Upload Local File</span>
+                  <Upload className="w-3.5 h-3.5 text-cyan-500" />
+                  <span>Upload Profile Picture</span>
                 </label>
 
                 <button
                   type="button"
                   onClick={() =>
-                    setPhotoURL(`https://api.dicebear.com/7.x/bottts/svg?seed=${Math.random().toString(36)}`)
+                    handleQuickPhotoUpdate(
+                      `https://api.dicebear.com/7.x/bottts/svg?seed=${Math.random().toString(36).slice(2)}`,
+                      'Generated and saved new avatar!'
+                    )
                   }
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 border border-slate-700 transition-all"
+                  className={`px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 border transition-all cursor-pointer ${
+                    isLight
+                      ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+                      : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+                  }`}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
                   <span>Generate Avatar</span>
                 </button>
               </div>
@@ -243,20 +481,20 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerifica
               <div className="flex items-center gap-2">
                 <input
                   type="url"
-                  placeholder="Paste direct image URL..."
+                  placeholder="Or paste an image URL (https://...)..."
                   value={customUrlInput}
                   onChange={(e) => setCustomUrlInput(e.target.value)}
-                  className="flex-1 bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  className={inputClass}
                 />
                 <button
                   type="button"
                   onClick={() => {
                     if (customUrlInput.trim()) {
-                      setPhotoURL(customUrlInput.trim());
+                      handleQuickPhotoUpdate(customUrlInput.trim(), 'Profile picture URL applied!');
                       setCustomUrlInput('');
                     }
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold"
+                  className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shrink-0 cursor-pointer"
                 >
                   Apply
                 </button>
@@ -264,18 +502,24 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerifica
 
               {/* Curated Presets */}
               <div>
-                <span className="text-[11px] text-slate-400 block mb-1.5">Or choose a preset style:</span>
-                <div className="flex items-center gap-2">
+                <span className={`text-[11px] block mb-1.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Or select a preset style:
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
                   {PRESET_AVATARS.map((url, idx) => (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => setPhotoURL(url)}
-                      className={`w-8 h-8 rounded-lg overflow-hidden border-2 transition-all ${
-                        photoURL === url ? 'border-cyan-400 scale-110 shadow-md' : 'border-slate-700 opacity-70 hover:opacity-100'
+                      onClick={() => handleQuickPhotoUpdate(url, 'Preset profile picture saved!')}
+                      className={`w-9 h-9 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                        photoURL === url
+                          ? 'border-cyan-500 scale-110 shadow-md'
+                          : isLight
+                          ? 'border-slate-300 opacity-80 hover:opacity-100'
+                          : 'border-slate-700 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <img src={url} alt="preset" className="w-full h-full object-cover" />
+                      <img src={url} alt={`Preset avatar ${idx + 1}`} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -284,77 +528,82 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerifica
           </div>
         </div>
 
-        {/* User Details Form Fields */}
-        <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-6 space-y-4">
-          <h3 className="text-sm font-bold text-white mb-2">Account Profile Information</h3>
+        {/* Editable Personal Details Form */}
+        <div className={`${cardClass} space-y-4`}>
+          <h3 className={`text-sm font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            Personal Details
+          </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             {/* Display Name */}
             <div>
-              <label className="text-slate-300 font-medium block mb-1">Display Name</label>
+              <label className={labelClass}>Full Name / Display Name *</label>
               <input
                 type="text"
                 required
+                maxLength={100}
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-blue-500"
+                className={inputClass}
               />
             </div>
 
-            {/* Email (Google Authenticated) */}
+            {/* Email */}
             <div>
-              <label className="text-slate-300 font-medium block mb-1">Email Address</label>
+              <label className={labelClass}>Email Address</label>
               <div className="relative">
                 <input
                   type="email"
                   disabled
-                  value={user.email || ''}
-                  className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-400 cursor-not-allowed"
+                  value={activeEmail}
+                  className={disabledInputClass}
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                   <Shield className="w-3 h-3" />
-                  Verified
+                  {isVerified ? 'Verified' : 'Account Email'}
                 </span>
               </div>
             </div>
 
             {/* Company */}
             <div>
-              <label className="text-slate-300 font-medium block mb-1">Company / Organization</label>
+              <label className={labelClass}>Company / Organization</label>
               <div className="relative">
-                <Building className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
+                  maxLength={150}
                   placeholder="e.g. Apex Retail Inc"
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className={`${inputClass} pl-9`}
                 />
               </div>
             </div>
 
             {/* Phone */}
             <div>
-              <label className="text-slate-300 font-medium block mb-1">Contact Phone</label>
+              <label className={labelClass}>Contact Phone</label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="tel"
-                  placeholder="+1 (555) 000-0000"
+                  maxLength={30}
+                  placeholder="+27 60 137 5180"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-9 pr-3.5 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className={`${inputClass} pl-9`}
                 />
               </div>
             </div>
 
             {/* Role */}
             <div>
-              <label className="text-slate-300 font-medium block mb-1">System Role</label>
+              <label className={labelClass}>Account Role</label>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as any)}
-                className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-blue-500"
+                onChange={(e) => setRole(e.target.value as 'client' | 'developer' | 'manager' | 'admin')}
+                className={inputClass}
               >
                 <option value="client">Client</option>
                 <option value="developer">Developer</option>
@@ -365,40 +614,41 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerifica
 
             {/* Account Status */}
             <div>
-              <label className="text-slate-300 font-medium block mb-1">Account Status</label>
+              <label className={labelClass}>Account Status</label>
               <input
                 type="text"
                 disabled
-                value="Active (Authenticated)"
-                className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2 text-emerald-400 font-medium cursor-not-allowed"
+                value={user ? 'Active (Authenticated)' : 'Active (Preview Session)'}
+                className={`${disabledInputClass} text-emerald-600 dark:text-emerald-400 font-semibold`}
               />
             </div>
           </div>
 
           {/* Bio */}
           <div>
-            <label className="text-slate-300 font-medium block mb-1 text-xs">
-              Bio & Project Objectives
-            </label>
+            <label className={labelClass}>Bio & Project Objectives</label>
             <textarea
               rows={3}
+              maxLength={500}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell us about your digital goals, target audience, or company mission..."
-              className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className={inputClass}
             />
           </div>
         </div>
 
-        {/* Google Drive Status & Cloud Sync */}
-        <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Google Drive Status */}
+        <div className={`${cardClass} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500">
               <HardDrive className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white">Google Drive Integration</h4>
-              <p className="text-[11px] text-slate-400">
+              <h4 className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                Google Drive Integration
+              </h4>
+              <p className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                 Connected with Google Workspace drive.file scope for direct project exports
               </p>
             </div>
@@ -408,30 +658,42 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerifica
             href="https://drive.google.com/drive/my-drive"
             target="_blank"
             rel="noreferrer"
-            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-all"
+            className={`px-3.5 py-1.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-all ${
+              isLight
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+                : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+            }`}
           >
             <span>Open Google Drive</span>
-            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+            <ExternalLink className="w-3.5 h-3.5 opacity-70" />
           </a>
         </div>
 
         {/* Google Business Profile Connection Status */}
-        <div className="bg-slate-900/60 rounded-2xl border border-blue-500/30 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div
+          className={`rounded-2xl border p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors ${
+            isLight
+              ? 'bg-blue-50/50 border-blue-200 shadow-sm'
+              : 'bg-slate-900/60 border-blue-500/30'
+          }`}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
               G
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-xs font-bold text-white">Google Business Profile</h4>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  Google Business Profile
+                </h4>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   Linked & Verified
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30">
                   5.0 ★ (47 Reviews)
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className={`text-[11px] mt-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 Service Websites Agency · Moumo Street, Rustenburg · KG Machine ID: {GOOGLE_BUSINESS_PROFILE.kgmid}
               </p>
             </div>
@@ -441,7 +703,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerifica
             href={GOOGLE_BUSINESS_PROFILE.shareUrl}
             target="_blank"
             rel="noreferrer"
-            className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+            className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0"
           >
             <span>Open on Google</span>
             <ExternalLink className="w-3.5 h-3.5" />
@@ -452,10 +714,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onOpenVerifica
         <div className="flex items-center justify-end gap-3 pt-2">
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || uploadingPhoto}
             className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <Save className="w-4 h-4" />
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             <span>{saving ? 'Saving Changes...' : 'Save Profile Settings'}</span>
           </button>
         </div>

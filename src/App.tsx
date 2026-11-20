@@ -29,12 +29,14 @@ import {
 } from './lib/seedData';
 import { LANDING_PAGES } from './lib/landingPagesData';
 import { LandingPageView } from './components/LandingPageView';
+import { OurBlogPage } from './components/OurBlogPage';
 
 function DashboardContent() {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'website' | 'dashboard'>('website');
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [activeLandingSlug, setActiveLandingSlug] = useState<string | null>(null);
+  const [isBlogOpen, setIsBlogOpen] = useState<boolean>(false);
   const [isDriveModalOpen, setIsDriveModalOpen] = useState<boolean>(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState<boolean>(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState<boolean>(false);
@@ -59,11 +61,22 @@ function DashboardContent() {
         const slug = hash.replace('#page-', '');
         const found = LANDING_PAGES.find((p) => p.slug === slug);
         if (found) {
+          setIsBlogOpen(false);
           setActiveLandingSlug(slug);
           setViewMode('website');
         }
+      } else if (hash === '#blog' || hash.startsWith('#blog/') || hash === '#our-blog') {
+        setIsBlogOpen(true);
+        setActiveLandingSlug(null);
+        setViewMode('website');
       } else if (hash === '#dashboard') {
+        setIsBlogOpen(false);
         setViewMode('dashboard');
+        setActiveLandingSlug(null);
+      } else if (hash === '#profile' || hash === '#account') {
+        setIsBlogOpen(false);
+        setViewMode('dashboard');
+        setActiveTab('profile');
         setActiveLandingSlug(null);
       } else if (
         hash === '#drive-export' ||
@@ -77,6 +90,7 @@ function DashboardContent() {
       } else if (hash === '#signin' || hash === '#login') {
         openAuthModal('signin');
       } else if (!hash || hash === '#hero' || hash === '#about' || hash === '#services' || hash === '#portfolio' || hash === '#reviews' || hash === '#location' || hash === '#contact' || hash === '#footer') {
+        setIsBlogOpen(false);
         setActiveLandingSlug(null);
       }
     };
@@ -157,8 +171,20 @@ function DashboardContent() {
         />
       )}
 
-      {/* Main View Router: Dedicated Landing Page, Agency Website, or Client Dashboard */}
-      {activeLandingSlug && LANDING_PAGES.find((p) => p.slug === activeLandingSlug) ? (
+      {/* Main View Router: Our Blog, Dedicated Landing Page, Agency Website, or Client Dashboard */}
+      {isBlogOpen ? (
+        <OurBlogPage
+          onBack={() => {
+            setIsBlogOpen(false);
+            window.location.hash = '';
+          }}
+          onOpenLandingPage={(slug) => {
+            setIsBlogOpen(false);
+            setActiveLandingSlug(slug);
+            window.location.hash = 'page-' + slug;
+          }}
+        />
+      ) : activeLandingSlug && LANDING_PAGES.find((p) => p.slug === activeLandingSlug) ? (
         <LandingPageView
           page={LANDING_PAGES.find((p) => p.slug === activeLandingSlug)!}
           onBack={() => {
@@ -180,6 +206,14 @@ function DashboardContent() {
           projects={projectsList}
           onOpenAccountModal={() => setIsAccountModalOpen(true)}
           onOpenDashboard={() => setViewMode('dashboard')}
+          onOpenProfilePage={() => {
+            setViewMode('dashboard');
+            setActiveTab('profile');
+          }}
+          onOpenBlogPage={() => {
+            setIsBlogOpen(true);
+            window.location.hash = 'blog';
+          }}
           onOpenProjectsView={() => {
             setViewMode('dashboard');
             setActiveTab('projects');
@@ -260,6 +294,7 @@ function DashboardContent() {
               {activeTab === 'profile' && (
                 <ProfileSettings
                   onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
+                  onOpenAuthModal={openAuthModal}
                 />
               )}
             </main>
@@ -272,6 +307,10 @@ function DashboardContent() {
         isOpen={isAccountModalOpen}
         onClose={() => setIsAccountModalOpen(false)}
         onOpenDashboard={() => setViewMode('dashboard')}
+        onOpenProfilePage={() => {
+          setViewMode('dashboard');
+          setActiveTab('profile');
+        }}
         onOpenDriveBackup={() => setIsDriveModalOpen(true)}
         onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
         onOpenAuthModal={openAuthModal}

@@ -39,6 +39,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [company, setCompany] = useState('');
   const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -54,6 +55,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setActiveTab(initialTab);
       setError(null);
       setSuccessMessage(null);
+      setConfirmPassword('');
       setShowForgotPassword(false);
       setResetSent(false);
     }
@@ -73,6 +75,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     if (password.length < 6) {
       setError('Password must contain at least 6 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please re-enter to confirm.');
       return;
     }
 
@@ -238,7 +245,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Sign In
+            Log In
           </button>
         </div>
 
@@ -360,6 +367,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-[11px] font-bold mb-1 opacity-80">
+                Confirm Password *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-3 top-2.5 opacity-50" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={`w-full pl-9 pr-3 py-2 rounded-xl border text-xs font-medium outline-none transition-colors ${
+                    isLight
+                      ? 'bg-slate-50 border-slate-300 focus:border-amber-500 text-slate-900'
+                      : 'bg-slate-900 border-slate-800 focus:border-amber-400 text-white'
+                  }`}
+                />
               </div>
             </div>
 
@@ -518,11 +547,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Signing In...</span>
+                  <span>Logging In...</span>
                 </>
               ) : (
                 <>
-                  <span>Sign In with Email</span>
+                  <span>Log In with Email</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
