@@ -1,6 +1,6 @@
 /**
- * Service Websites Agency - 25 Comprehensive Landing Pages Data
- * Extracted and compiled from official landing pages zip distribution.
+ * Service Websites Agency - Comprehensive Landing Pages & Pillar Hub Data
+ * Includes Pillar Pages with Hub & Spoke 3-Query Clusters.
  */
 
 export interface LandingPageItem {
@@ -29,6 +29,24 @@ export interface LandingPageItem {
   }[];
   ctaHeading: string;
   ctaText: string;
+  pillarCluster?: {
+    pillarLabel: string;
+    pillarShortName?: string;
+    pillarHeading?: string;
+    primaryKeyword: string;
+    summary: string;
+    ambiguousQueries: {
+      id: string;
+      keyword: string;
+      googleQuestion: string;
+      searchAmbiguity: string;
+      answerSummary: string;
+      targetSlug: string;
+      targetLabel: string;
+      secondarySlug?: string;
+      secondaryLabel?: string;
+    }[];
+  };
 }
 
 export const LANDING_PAGES: LandingPageItem[] = [
@@ -368,17 +386,66 @@ export const LANDING_PAGES: LandingPageItem[] = [
       'Business email accounts (@yourbusiness.co.za)',
       'High-speed SSD hosting and SSL security'
     ],
-    pricingEstimate: 'Starter packages from R3,900',
-    turnaroundTime: '5 – 7 business days',
+    pricingEstimate: 'From R3,000 (Business) · R4,000 (Bookings) · R5,000 (E-Commerce)',
+    turnaroundTime: '1 day (small business) – 7 days max (e-commerce)',
     targetAudience: 'Rustenburg business owners, contractors, medical suites, and retail storefronts.',
     faq: [
       {
         question: 'Can I meet with your team in person in Rustenburg?',
         answer: 'Yes! We are located in Tlhabane, Rustenburg. We welcome local business owners for an in-person briefing or can visit your premises.'
+      },
+      {
+        question: 'What do people usually mean when they search "website designers near me" in Rustenburg?',
+        answer: 'Most Rustenburg searchers are looking for one of three things: transparent ZAR package pricing (from R3,000 to R5,000), local Google Maps & search visibility so clients find them first, or fast turnaround (1 day for small business websites up to 7 days for full e-commerce stores).'
       }
     ],
     ctaHeading: 'Dominate the Rustenburg Market Today',
-    ctaText: 'Contact our local Rustenburg design team for an obligation-free consultation.'
+    ctaText: 'Contact our local Rustenburg design team for an obligation-free consultation.',
+    pillarCluster: {
+      pillarLabel: 'Website Design Pillar Page · Hub & Spoke Architecture',
+      pillarShortName: 'Website Design Pillar Page',
+      pillarHeading: 'Website Design Pillar Hub: 3 Ambiguous "Near Me & Rustenburg" Searches Explained',
+      primaryKeyword: 'website designers near me / website designers Rustenburg',
+      summary:
+        'When local business owners search Google for "website designers near me" or "website designers Rustenburg", the query often masks three very different needs—budget clarity, Google Maps ranking, or website type and launch speed. This Pillar Page resolves each ambiguous search intent and connects you directly to the dedicated solution page.',
+      ambiguousQueries: [
+        {
+          id: 'ambiguous-pricing',
+          keyword: 'Ambiguous Query 01 · Pricing & Package Scope',
+          googleQuestion: '"How much do website designers near me charge in Rustenburg?"',
+          searchAmbiguity:
+            'Searchers asking for "cheap vs professional website designers in Rustenburg" rarely specify whether they need a starter business site, a booking/calendar platform, or a full online store—leading to confusing quotes from R1,000 to R40,000+.',
+          answerSummary:
+            'We provide fixed local pricing: Business websites start from R3,000; Blogs and Bookings/Calendar websites from R4,000; and E-commerce, brochures and online stores from R5,000.',
+          targetSlug: 'website-cost-survey-south-africa-2026',
+          targetLabel: 'Website Cost Survey (2026)'
+        },
+        {
+          id: 'ambiguous-local-seo',
+          keyword: 'Ambiguous Query 02 · Design vs. Google Maps Ranking',
+          googleQuestion: '"Website designers in Rustenburg who get my business on Google?"',
+          searchAmbiguity:
+            'Many buyers ask for a "website designer near me" when their underlying problem is invisibility on Google Maps and local search across Tlhabane, Cashan, Waterfall East, and Phokeng.',
+          answerSummary:
+            'A site without Local SEO will not ring your phone. Our builds pair custom web design with Rustenburg LocalBusiness schema, Google Business Profile verification, and mobile Core Web Vitals optimization.',
+          targetSlug: 'local-seo-rustenburg',
+          targetLabel: 'Local SEO Rustenburg'
+        },
+        {
+          id: 'ambiguous-type-speed',
+          keyword: 'Ambiguous Query 03 · Small Business Speed vs. E-Commerce',
+          googleQuestion: '"Best web designer near me — how fast can my business or online shop launch?"',
+          searchAmbiguity:
+            'Searching "website designers near me" does not distinguish between a fast 1-day service-business lead website and a full PayFast/Ozow e-commerce storefront with product catalogs and courier rates.',
+          answerSummary:
+            'Small business websites typically launch in 1 day to start capturing WhatsApp and phone leads immediately, while full e-commerce stores and brochures launch within a maximum of 7 days.',
+          targetSlug: 'website-design-for-small-businesses',
+          targetLabel: 'Small Business Websites',
+          secondarySlug: 'ecommerce-website-south-africa',
+          secondaryLabel: 'E-Commerce Stores SA'
+        }
+      ]
+    }
   },
 
   // 7. Website Design South Africa
@@ -491,6 +558,115 @@ export const LANDING_PAGES: LandingPageItem[] = [
     ],
     ctaHeading: 'Claim Top Spot in Rustenburg Google Maps',
     ctaText: 'Request a free Local SEO audit of your current Google Business presence.'
+  },
+
+  // 8B. Google & ChatGPT Business Profiles (Pillar Page)
+  {
+    slug: 'google-chatgpt-business-profiles',
+    title: 'Google & ChatGPT Business Profiles',
+    category: 'Local SEO',
+    categoryGroup: 'seo',
+    metaDescription: 'Pillar guide to ranking your Google Business Profile in the 3-Pack and structuring verified entity data so ChatGPT, Gemini, and Perplexity recommend your business.',
+    badge: 'Google & AI Search Pillar',
+    headline: 'Google & ChatGPT Business Profiles for Local Search Dominance',
+    subheadline: 'Win the Google Maps 3-Pack and get cited by ChatGPT, Gemini, and Google AI Overviews when buyers ask who to hire in Rustenburg and South Africa.',
+    readTime: '5 min read',
+    overview: [
+      'Local buyers no longer rely solely on ten blue links. Today, homeowners, mining procurement teams, and retail customers either tap the Google Maps 3-Pack or ask ChatGPT, Gemini, and Perplexity: "Who is the best service provider near me?"',
+      'Being visible in both ecosystems requires two synchronized assets: a verified, high-trust Google Business Profile (GBP) paired with structured Schema.org entity signals, Q&A answers, and citation-ready pages on your own domain that AI search crawlers trust.'
+    ],
+    features: [
+      {
+        title: 'Google Business Profile 3-Pack Alignment',
+        description: 'Primary & secondary category precision, Rustenburg service area polygons, product menus, and UTM-tracked website links.',
+        iconName: 'MapPin'
+      },
+      {
+        title: 'ChatGPT & AI Search Entity Readiness (GEO)',
+        description: 'Clear pricing ranges, turnaround times, Knowledge Graph entity attributes, and authoritative Q&A formatting built for LLM citations.',
+        iconName: 'Search'
+      },
+      {
+        title: 'Schema.org LocalBusiness & FAQ Markup',
+        description: 'Machine-readable JSON-LD structured data verifying your NAP (Name, Address, Phone), WhatsApp channel, and verified reviews.',
+        iconName: 'Globe'
+      },
+      {
+        title: '5-Star Review & Quote Conversion Loops',
+        description: 'Turn completed jobs into verified Google reviews while routing AI and Maps searchers directly to instant WhatsApp or phone calls.',
+        iconName: 'Star'
+      }
+    ],
+    deliverables: [
+      'Complete Google Business Profile audit, verification & category optimization',
+      'AI Search (ChatGPT, Gemini & Perplexity) entity & FAQ content architecture',
+      'LocalBusiness, Service & FAQPage JSON-LD structured data synchronization',
+      '5-star Google review generation pipeline & direct WhatsApp attribution'
+    ],
+    pricingEstimate: 'GBP & AI Profile Setup from R2,800 · Included in R3,000+ Web Builds',
+    turnaroundTime: '3 – 5 business days',
+    targetAudience: 'South African businesses wanting to appear in both Google Maps top 3 results and ChatGPT/AI search recommendations.',
+    faq: [
+      {
+        question: 'How does ChatGPT decide which local businesses to recommend?',
+        answer: 'AI assistants synthesize consistent entity facts across your Google Business Profile, structured Schema.org markup on your website, verifiable reviews, transparent pricing, and regional citations.'
+      },
+      {
+        question: 'Do I still need a website if I already have a Google Business Profile?',
+        answer: 'Yes. Both Google Maps rankings and AI search engines heavily cross-check your domain for service depth, FAQ answers, and trust signals before recommending your profile over competitors.'
+      }
+    ],
+    ctaHeading: 'Get Recommended on Google Maps & ChatGPT',
+    ctaText: 'Book a free profile visibility audit with our Rustenburg SEO & AI Search team.',
+    pillarCluster: {
+      pillarLabel: 'Google & ChatGPT Profiles Pillar Page · Hub & Spoke Architecture',
+      pillarShortName: 'Google & ChatGPT Profiles Pillar',
+      pillarHeading: 'Google & ChatGPT Business Profiles Pillar Hub: 3 Ambiguous AI & Map Searches Explained',
+      primaryKeyword: 'Google Business Profile & ChatGPT business recommendations near me / Rustenburg',
+      summary:
+        'When business owners ask how to show up on Google and ChatGPT when local customers search, that question hides three separate technical problems: map pin visibility, website entity proof for AI crawlers, and review/case-study trust. This Pillar Page resolves all three ambiguous queries and routes you to the exact solution page.',
+      ambiguousQueries: [
+        {
+          id: 'gbp-chatgpt-listing',
+          keyword: 'Ambiguous Query 01 · Google Maps Pin vs. ChatGPT AI Recommendations',
+          googleQuestion: '"How do I get my business on Google and recommended by ChatGPT?"',
+          searchAmbiguity:
+            'Many owners assume there is a single "ChatGPT Business Listing" button like Google Business Profile. In practice, Google Maps ranks GBP signals and local citations, while ChatGPT and Gemini rely on clear factual website copy and cross-referenced directory data.',
+          answerSummary:
+            'We pair Rustenburg & multi-city Local SEO citations with factual, entity-rich service pages so Google Maps puts you in the 3-Pack and AI engines cite your brand accurately.',
+          targetSlug: 'local-seo-rustenburg',
+          targetLabel: 'Local SEO Rustenburg',
+          secondarySlug: 'local-seo-south-africa',
+          secondaryLabel: 'Multi-City Local SEO SA'
+        },
+        {
+          id: 'gbp-invisibility-schema',
+          keyword: 'Ambiguous Query 02 · Hidden Profile vs. Missing Website Schema',
+          googleQuestion: '"Why is my business not showing up near me on Google Maps or AI search?"',
+          searchAmbiguity:
+            'Asking why a profile does not appear near Rustenburg is ambiguous between an unoptimized GBP category/NAP mismatch and a weak website lacking LocalBusiness JSON-LD schema and fast mobile Core Web Vitals.',
+          answerSummary:
+            'Connecting a fast Rustenburg website embedded with LocalBusiness, Service, and FAQ Schema gives Google and AI search engines unambiguous confirmation of your location, pricing, and active contact channels.',
+          targetSlug: 'website-design-rustenburg',
+          targetLabel: 'Website Design Pillar',
+          secondarySlug: 'why-choose-us',
+          secondaryLabel: 'Technical SEO Standards'
+        },
+        {
+          id: 'gbp-ai-trust-conversion',
+          keyword: 'Ambiguous Query 03 · Passive Listing vs. Verified Reputation & Leads',
+          googleQuestion: '"Who is the highest-rated business near me on Google and AI search?"',
+          searchAmbiguity:
+            'When customers ask Google or ChatGPT who to trust first, AI engines evaluate 5.0-star review consistency, documented client projects, and friction-free WhatsApp/call conversion—not just a name and street pin.',
+          answerSummary:
+            'Explore our verified 5.0-star client case studies and 6-month acquisition reports demonstrating how structured profiles turn local impressions into 342+ monthly leads.',
+          targetSlug: 'our-clients',
+          targetLabel: 'Our Clients & Case Studies',
+          secondarySlug: 'use-cases',
+          secondaryLabel: 'Use Cases & Reports'
+        }
+      ]
+    }
   },
 
   // 9. Local SEO South Africa
@@ -717,60 +893,113 @@ export const LANDING_PAGES: LandingPageItem[] = [
     ctaText: 'Choose a monthly care tier and never worry about technical website issues again.'
   },
 
-  // 13. Business Software South Africa
+  // 13. Business Software South Africa (Pillar Page: Calendar, Blogs, Booking & Portals)
   {
     slug: 'business-software-south-africa',
-    title: 'Business Software South Africa',
+    title: 'Business Software (Calendar, Blogs & Booking)',
     category: 'Software & Portals',
     categoryGroup: 'software',
-    metaDescription: 'Custom business software development in South Africa. Bespoke client management, workflow automation, and operational dashboards.',
-    badge: 'Custom Engineering',
-    headline: 'Bespoke Business Software Built for South African Operations',
-    subheadline: 'Eliminate clunky spreadsheets and expensive US Dollar subscriptions with custom cloud software built for your exact workflow.',
+    metaDescription: 'Pillar guide to custom business software in South Africa: live booking & calendar systems, SEO/AI authority blogs, client portals, and ZAR CRMs.',
+    badge: 'Software & Booking Pillar',
+    headline: 'Business Software: Calendar, Blogs, Booking Systems & Portals',
+    subheadline: 'Replace messy spreadsheets and costly USD tools with custom ZAR software—from R4,000 Calendar, Booking & Blog systems to bespoke CRMs and Client Portals.',
     readTime: '5 min read',
     overview: [
-      'Off-the-shelf software packages often force your business to adapt to their rigid rules, while charging punitive monthly fees in US Dollars that skyrocket as the Rand fluctuates.',
-      'We build clean, robust custom business software: job cards, inventory trackers, dispatch portals, client databases, and automated reporting systems tailored to your specific operations.'
+      'Off-the-shelf software packages often force your business to adapt to rigid templates while charging punitive monthly fees in US Dollars that climb every time your team grows or the Rand fluctuates.',
+      'We engineer practical business software in ZAR with 100% client ownership: automated appointment calendars and booking systems (from R4,000), authority CMS blogs built for Google & AI search citations (from R4,000), self-service client portals, and Kanban CRM sales pipelines.'
     ],
     features: [
       {
-        title: 'Zero Per-User Licensing Traps',
-        description: 'You own the software completely. Add 5 or 500 team members without paying punitive per-seat SaaS costs.',
+        title: 'Online Booking & Live Calendar Engines',
+        description: 'Automated time-slot scheduling, double-booking locks, WhatsApp/email reminders, and optional PayFast/Ozow deposits.',
+        iconName: 'Clock'
+      },
+      {
+        title: 'Authority Blogs & CMS Publishing',
+        description: 'Fast content publishing workflows with built-in SEO, AEO & GEO structured schema so Google and ChatGPT cite your expertise.',
+        iconName: 'Search'
+      },
+      {
+        title: 'Zero Per-User USD Licensing Traps',
+        description: 'You own the software completely. Add 5 or 500 team members without paying punitive monthly per-seat SaaS fees.',
         iconName: 'DollarSign'
       },
       {
-        title: 'Cloud-Based with Offline Sync',
-        description: 'Accessible on phone, tablet, and laptop anywhere in South Africa with local caching for spotty internet coverage.',
-        iconName: 'Globe'
-      },
-      {
-        title: 'Role-Based Team Access Control',
-        description: 'Admin, manager, technician, and client permission levels ensure sensitive financial data remains protected.',
-        iconName: 'Shield'
-      },
-      {
-        title: 'Google Drive & Workspace Integration',
-        description: 'Synchronize files, invoices, and job summaries directly to your company Google Drive storage automatically.',
+        title: 'Cloud Database & Google Drive Sync',
+        description: 'Role-based team permissions, Firestore/PostgreSQL reliability, and automated Google Drive document & invoice backups.',
         iconName: 'LayoutDashboard'
       }
     ],
     deliverables: [
-      'Full technical architecture specification',
-      'Secure PostgreSQL / Firestore database backing',
-      'Tailored staff training and documentation',
-      'Full source code handover'
+      'Calendar, Booking & Blog websites from R4,000',
+      'Custom CRM, Client Portal & workflow modules',
+      'Automated WhatsApp & email notification hooks',
+      'Full source code & database handover'
     ],
-    pricingEstimate: 'Projects from R15,000 – R45,000 depending on scope',
-    turnaroundTime: '3 – 6 weeks in iterative sprints',
-    targetAudience: 'Growing South African companies outgrowing Excel and generic software.',
+    pricingEstimate: 'Blogs/Bookings/Calendar from R4,000 · Custom Portals R9,500 – R45,000',
+    turnaroundTime: '3 – 7 days (Booking/Blogs) · 2 – 5 weeks (Custom Software)',
+    targetAudience: 'Service providers, clinics, salons, restaurants, consultants, and growing South African companies outgrowing spreadsheets.',
     faq: [
       {
+        question: 'How much does a booking calendar or blog website cost?',
+        answer: 'Blogs and Bookings/Calendar websites start from R4,000 with mobile-responsive scheduling, instant notifications, and full ownership. Custom multi-user CRMs and enterprise portals scale from R7,500 to R45,000 depending on scope.'
+      },
+      {
         question: 'Do we own the software code after completion?',
-        answer: 'Yes, 100%. We transfer the complete source code and database architecture directly to your organization.'
+        answer: 'Yes, 100%. We transfer the complete source code and database architecture directly to your organization with zero per-seat lock-in.'
       }
     ],
-    ctaHeading: 'Build Software Built for Your Business',
-    ctaText: 'Schedule a systems scoping discussion with our technical architect.'
+    ctaHeading: 'Build Business Software Built for Your Workflow',
+    ctaText: 'Launch a booking calendar, authority blog, or custom portal without USD subscription bloat.',
+    pillarCluster: {
+      pillarLabel: 'Business Software Pillar Page · Calendar, Blogs & Booking Systems',
+      pillarShortName: 'Business Software Pillar Page',
+      pillarHeading: 'Business Software Pillar Hub: 3 Ambiguous Calendar, Blog & Booking Searches Explained',
+      primaryKeyword: 'business software, booking calendar & blog website Rustenburg / South Africa',
+      summary:
+        'When South African business owners search for "business software" or "calendar, blog and booking website", a single query often masks three distinct technical goals—automated appointment calendars, SEO/AI-ready blog publishing systems, or custom client portals and CRMs. Explore each ambiguous search below.',
+      ambiguousQueries: [
+        {
+          id: 'software-calendar-booking',
+          keyword: 'Ambiguous Query 01 · Calendar Widget vs. Full Booking System',
+          googleQuestion: '"How do I add an online booking system and calendar to my business website?"',
+          searchAmbiguity:
+            'Asking for a "booking or calendar website" blurs the difference between a basic WhatsApp inquiry form and a live slot-reservation engine with staff availability, anti-double-booking rules, and deposit checkout.',
+          answerSummary:
+            'Our Blogs & Bookings/Calendar websites start from R4,000—giving service providers, salons, clinics, and restaurants real-time appointment booking, WhatsApp confirmations, and calendar sync.',
+          targetSlug: 'booking-calendar-websites-south-africa',
+          targetLabel: 'Calendar & Booking Systems',
+          secondarySlug: 'website-design-for-restaurants',
+          secondaryLabel: 'Table & Venue Reservations'
+        },
+        {
+          id: 'software-blog-cms',
+          keyword: 'Ambiguous Query 02 · News Feed vs. SEO & AI Authority Blog Software',
+          googleQuestion: '"Should I build a blog website or content system for my business?"',
+          searchAmbiguity:
+            'Searchers asking for "blog software" rarely clarify whether they want a static diary page or an engineered CMS publishing system with structured Article & FAQ schema that captures Google and ChatGPT traffic.',
+          answerSummary:
+            'From R4,000, we build clean Blog & CMS publishing platforms structured for SEO, AEO & GEO—turning your industry answers into compounding organic traffic and WhatsApp quote leads.',
+          targetSlug: 'blog-cms-websites-south-africa',
+          targetLabel: 'Blogs & CMS Publishing',
+          secondarySlug: 'local-seo-south-africa',
+          secondaryLabel: 'Regional Content SEO'
+        },
+        {
+          id: 'software-crm-portal',
+          keyword: 'Ambiguous Query 03 · Spreadsheets vs. All-in-One CRM & Client Portals',
+          googleQuestion: '"What software replaces spreadsheets for quotes, clients and jobs in South Africa?"',
+          searchAmbiguity:
+            'Businesses searching broadly for "business software" often need one central workspace connecting website bookings, Kanban sales CRM pipelines, and secure client document portals billed in ZAR—not USD.',
+          answerSummary:
+            'Consolidate client logins, Google Drive file vaults, Kanban quote tracking, and field job milestones into your own bespoke ZAR portal with zero per-user licensing fees.',
+          targetSlug: 'client-portal-software-south-africa',
+          targetLabel: 'Client Portal Software',
+          secondarySlug: 'crm-software-south-africa',
+          secondaryLabel: 'CRM & Lead Pipelines'
+        }
+      ]
+    }
   },
 
   // 14. Client Portal Software South Africa
@@ -939,6 +1168,122 @@ export const LANDING_PAGES: LandingPageItem[] = [
     ],
     ctaHeading: 'Take Control of Project Delivery',
     ctaText: 'Deploy our proven project management framework for your team today.'
+  },
+
+  // 16B. Booking & Calendar Systems South Africa (Spoke of Business Software Pillar)
+  {
+    slug: 'booking-calendar-websites-south-africa',
+    title: 'Calendar & Booking Systems South Africa',
+    category: 'Software & Portals',
+    categoryGroup: 'software',
+    metaDescription: 'Custom online booking systems and interactive calendar websites in South Africa from R4,000. Live slot availability, WhatsApp alerts, and PayFast deposits.',
+    badge: 'Bookings & Calendars',
+    headline: 'Automated Calendar & Online Booking Systems Built for Conversion',
+    subheadline: 'Let customers pick an available date and time 24/7, receive instant WhatsApp or email confirmations, and eliminate double-bookings.',
+    readTime: '4 min read',
+    overview: [
+      'Endless WhatsApp back-and-forth asking "What times are you free on Thursday?" loses impatient customers who simply book the next provider with an instant online calendar.',
+      'Our Booking & Calendar software—starting from R4,000—gives clinics, salons, restaurants, consultants, and trade estimators real-time slot selection, automated reminders, and seamless Google Calendar & PayFast synchronization.'
+    ],
+    features: [
+      {
+        title: 'Live Availability & Conflict Locking',
+        description: 'Customers only see real open time slots across single or multi-staff schedules, preventing double-bookings automatically.',
+        iconName: 'Clock'
+      },
+      {
+        title: 'Instant WhatsApp & Email Confirmations',
+        description: 'Trigger immediate booking receipts, calendar invites, and reminder nudges to slash costly client no-shows.',
+        iconName: 'MessageCircle'
+      },
+      {
+        title: 'Optional PayFast & Ozow Deposit Gate',
+        description: 'Collect consultation retainers or booking deposits upfront before locking a premium appointment slot.',
+        iconName: 'DollarSign'
+      },
+      {
+        title: 'Staff Schedule & Google Calendar Sync',
+        description: 'Manage daily bookings cleanly from mobile or desktop with two-way Google Workspace calendar synchronization.',
+        iconName: 'LayoutDashboard'
+      }
+    ],
+    deliverables: [
+      'Custom responsive booking calendar website',
+      'Service duration, buffer time & blackout date controls',
+      'Automated WhatsApp & email booking dispatch',
+      'Admin schedule manager with CSV export'
+    ],
+    pricingEstimate: 'Bookings & Calendar websites from R4,000',
+    turnaroundTime: '3 – 7 business days',
+    targetAudience: 'Medical & dental suites, salons, spas, restaurants, automotive workshops, consultants, and rental operators.',
+    faq: [
+      {
+        question: 'Can customers book and reschedule directly from their phones?',
+        answer: 'Yes. The booking calendar is engineered mobile-first so clients can select services, pick time slots, and confirm via WhatsApp or email in under 30 seconds.'
+      },
+      {
+        question: 'Are there monthly per-booking commissions?',
+        answer: 'No. We build on zero-commission architecture so you keep 100% of every appointment and deposit.'
+      }
+    ],
+    ctaHeading: 'Automate Your Bookings & Calendar Today',
+    ctaText: 'Launch a custom calendar and booking system starting from R4,000.'
+  },
+
+  // 16C. Blogs & CMS Publishing Platforms (Spoke of Business Software Pillar)
+  {
+    slug: 'blog-cms-websites-south-africa',
+    title: 'Blogs & CMS Publishing Platforms',
+    category: 'Software & Portals',
+    categoryGroup: 'software',
+    metaDescription: 'SEO, AEO & GEO-engineered business blogs and CMS websites in South Africa from R4,000. Rank on Google and get cited by AI search engines.',
+    badge: 'Blogs & Authority CMS',
+    headline: 'Authority Business Blogs & CMS Publishing Systems',
+    subheadline: 'Publish articles, guides, and case studies effortlessly on a structured CMS built to win Google search clicks and ChatGPT/AI citations.',
+    readTime: '4 min read',
+    overview: [
+      'Most business blogs fail because they are bolted onto slow, cluttered templates with poor typography and zero structured data. As a result, neither Google Search nor AI engines treat them as credible sources.',
+      'Starting from R4,000, we engineer clean blog and CMS publishing platforms structured around Pillar Hubs, crisp Q&A blocks, Article/FAQPage JSON-LD schema, and instant WhatsApp conversion banners.'
+    ],
+    features: [
+      {
+        title: 'SEO, AEO & GEO Content Architecture',
+        description: 'Built-in semantic headings, FAQ schema, and concise factual summaries designed for Google AI Overviews and ChatGPT search.',
+        iconName: 'Search'
+      },
+      {
+        title: 'Fast Mobile Reading Experience',
+        description: 'Sub-second page loads, clean editorial typography, dark/light mode parity, and zero distracting popup clutter.',
+        iconName: 'Zap'
+      },
+      {
+        title: 'Easy Article & Category Management',
+        description: 'Publish new posts, industry guides, pricing breakdowns, and project updates without touching source code.',
+        iconName: 'LayoutDashboard'
+      },
+      {
+        title: 'Built-In Lead Capture & Quote CTAs',
+        description: 'Every blog article integrates smart contextual WhatsApp quote triggers and Pillar Hub cross-links.',
+        iconName: 'MessageCircle'
+      }
+    ],
+    deliverables: [
+      'Complete Blog & CMS website with category filtering',
+      'Article, Author & FAQPage JSON-LD Schema integration',
+      'Starter Pillar + Spoke topical authority templates',
+      'Google Search Console & XML sitemap submission'
+    ],
+    pricingEstimate: 'Blogs & CMS websites from R4,000',
+    turnaroundTime: '3 – 6 business days',
+    targetAudience: 'Law firms, contractors, agencies, coaches, healthcare practices, and B2B brands building organic search authority.',
+    faq: [
+      {
+        question: 'Can you help structure our first blog articles for Google and AI search?',
+        answer: 'Yes! Every Blog & CMS build includes initial topical cluster mapping so your articles directly answer the high-intent questions local buyers ask.'
+      }
+    ],
+    ctaHeading: 'Turn Your Expertise into Organic Inbound Leads',
+    ctaText: 'Get an SEO and AI-ready blog website starting from R4,000.'
   },
 
   // 17. Website Design for Plumbers

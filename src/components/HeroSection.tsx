@@ -264,14 +264,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           ========================================================================= */}
       <div className="relative z-20 px-4 sm:px-6 md:px-10 py-4 sm:py-6 max-w-3xl space-y-5">
 
-        {/* Semantic H1 Headline for Local SEO & Search Intent */}
+        {/* Semantic H1 Headline / Hero Tagline */}
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-black tracking-tight leading-[1.1] text-white text-shadow-sm">
-          Web Design & Local SEO in Rustenburg
+          Need an affordable premium website?
         </h1>
 
         {/* Value Proposition & Subheading */}
         <p className="text-sm sm:text-base md:text-lg text-slate-200 leading-relaxed max-w-2xl font-normal drop-shadow-sm">
-          Fast-loading, high-converting websites designed specifically for Rustenburg and South African businesses. We build Google-optimised, mobile-first web experiences engineered to convert local searches into WhatsApp inquiries, phone calls, and paying clients.
+          Rustenburg leading premium website designers, SEO, AEO, GEO and software engineers. We build modern, fast loading websites from only R3000 within 7 days turnaround for e-commerce websites
         </p>
 
         {/* High Impact Action Row */}

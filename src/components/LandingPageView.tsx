@@ -22,6 +22,9 @@ import {
   Share2,
   HardDrive,
   Menu,
+  GitBranch,
+  ArrowRight,
+  Layers,
 } from 'lucide-react';
 import { LandingPageItem, LANDING_PAGES, LANDING_PAGE_CATEGORIES } from '../lib/landingPagesData';
 import { GOOGLE_BUSINESS_PROFILE } from '../lib/googleBusinessProfile';
@@ -87,6 +90,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   const relatedPages = LANDING_PAGES.filter(
     (p) => p.categoryGroup === page.categoryGroup && p.slug !== page.slug
   ).slice(0, 4);
+
+  // Find parent Pillar Page(s) that connect to this page via an ambiguous search cluster
+  const parentPillars = LANDING_PAGES.filter(
+    (p) =>
+      p.slug !== page.slug &&
+      p.pillarCluster?.ambiguousQueries.some(
+        (q) => q.targetSlug === page.slug || q.secondarySlug === page.slug
+      )
+  );
 
   return (
     <article
@@ -211,6 +223,23 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
               <span>Verified Google Profile (5.0 ★)</span>
             </a>
+            {page.pillarCluster && (
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1">
+                <Layers className="w-3 h-3" />
+                <span>Pillar Page</span>
+              </span>
+            )}
+            {parentPillars.map((pillar) => (
+              <button
+                key={pillar.slug}
+                type="button"
+                onClick={() => onSelectPage(pillar.slug)}
+                className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/15 text-amber-700 dark:text-amber-300 border border-amber-400/30 inline-flex items-center gap-1 hover:underline cursor-pointer"
+              >
+                <Layers className="w-3 h-3" />
+                <span>{pillar.pillarCluster?.pillarShortName || pillar.title} →</span>
+              </button>
+            ))}
           </div>
 
           <h1
@@ -295,6 +324,124 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </p>
           ))}
         </section>
+
+        {/* Pillar Page Hub & 3 Ambiguous Search Keywords Cluster */}
+        {page.pillarCluster && (
+          <section
+            id={page.slug === 'website-design-rustenburg' ? 'website-design-pillar' : `${page.slug}-pillar`}
+            className={`p-5 sm:p-7 rounded-3xl border space-y-6 ${
+              isLight
+                ? 'bg-gradient-to-br from-slate-50 via-white to-amber-50/60 border-amber-200/90 shadow-sm'
+                : 'bg-gradient-to-br from-[#101727] via-[#0d1320] to-[#141926] border-amber-500/30 shadow-xl'
+            }`}
+          >
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-400 text-slate-950">
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span>{page.pillarCluster.pillarLabel}</span>
+                </span>
+                <span
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold border ${
+                    isLight
+                      ? 'bg-white border-slate-200 text-slate-700'
+                      : 'bg-slate-900 border-slate-700 text-slate-300'
+                  }`}
+                >
+                  Target Query: {page.pillarCluster.primaryKeyword}
+                </span>
+              </div>
+
+              <h2
+                className={`text-xl sm:text-2xl font-serif font-black tracking-tight ${
+                  isLight ? 'text-slate-950' : 'text-white'
+                }`}
+              >
+                {page.pillarCluster.pillarHeading || `${page.title} Pillar Hub`}
+              </h2>
+
+              <p
+                className={`text-xs sm:text-sm leading-relaxed max-w-3xl ${
+                  isLight ? 'text-slate-600' : 'text-slate-300'
+                }`}
+              >
+                {page.pillarCluster.summary}
+              </p>
+            </div>
+
+            {/* 3 Connected Ambiguous Search Keyword Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {page.pillarCluster.ambiguousQueries.map((item) => (
+                <div
+                  key={item.id}
+                  className={`p-4 sm:p-5 rounded-2xl border flex flex-col justify-between gap-4 transition-all ${
+                    isLight
+                      ? 'bg-white border-slate-200 shadow-2xs hover:border-amber-400'
+                      : 'bg-[#0b101b]/90 border-slate-800 hover:border-amber-400/50'
+                  }`}
+                >
+                  <div className="space-y-2.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+                      {item.keyword}
+                    </span>
+                    <h3
+                      className={`text-sm font-serif font-bold leading-snug ${
+                        isLight ? 'text-slate-900' : 'text-white'
+                      }`}
+                    >
+                      {item.googleQuestion}
+                    </h3>
+                    <div
+                      className={`p-2.5 rounded-xl text-[11px] leading-relaxed border ${
+                        isLight
+                          ? 'bg-slate-50 border-slate-200/80 text-slate-600'
+                          : 'bg-slate-900/70 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      <strong className={isLight ? 'text-slate-800' : 'text-slate-200'}>
+                        Why it&apos;s ambiguous:{' '}
+                      </strong>
+                      {item.searchAmbiguity}
+                    </div>
+                    <p
+                      className={`text-xs leading-relaxed ${
+                        isLight ? 'text-slate-700' : 'text-slate-300'
+                      }`}
+                    >
+                      <strong className="text-emerald-600 dark:text-emerald-400">Direct Answer: </strong>
+                      {item.answerSummary}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200/70 dark:border-slate-800 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onSelectPage(item.targetSlug)}
+                      className="w-full px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer"
+                    >
+                      <span className="truncate">{item.targetLabel}</span>
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                    </button>
+                    {item.secondarySlug && item.secondaryLabel && (
+                      <button
+                        type="button"
+                        onClick={() => onSelectPage(item.secondarySlug!)}
+                        className={`w-full px-3 py-2 rounded-xl border font-semibold text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                          isLight
+                            ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800'
+                            : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200'
+                        }`}
+                      >
+                        <span className="truncate">{item.secondaryLabel}</span>
+                        <ArrowRight className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Key Features & Capabilities */}
         <section className="space-y-5">

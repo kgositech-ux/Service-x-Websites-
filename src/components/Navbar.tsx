@@ -215,7 +215,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
 
           {/* Account Pill & Logged In Actions */}
-          {user || profile ? (
+          {(user || profile) && (
             <div className="flex items-center gap-1 sm:gap-1.5">
               {/* Profile Pill */}
               <button
@@ -361,25 +361,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
                 )}
               </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => (onOpenAuthModal ? onOpenAuthModal('signin') : signIn())}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                  isLight
-                    ? 'border-slate-300 hover:bg-slate-100 text-slate-800'
-                    : 'border-slate-700 hover:bg-slate-800 text-slate-200'
-                }`}
-              >
-                Log In
-              </button>
-              <button
-                onClick={() => (onOpenAuthModal ? onOpenAuthModal('signup') : signIn())}
-                className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-md transition-all shrink-0 cursor-pointer"
-              >
-                Sign Up
-              </button>
             </div>
           )}
         </div>

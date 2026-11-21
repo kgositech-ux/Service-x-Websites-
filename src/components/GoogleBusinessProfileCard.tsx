@@ -6,10 +6,8 @@ import {
   Star,
   ExternalLink,
   CheckCircle2,
-  Share2,
   Navigation,
   Globe,
-  Sparkles,
   MessageCircle,
 } from 'lucide-react';
 import { GOOGLE_BUSINESS_PROFILE } from '../lib/googleBusinessProfile';
@@ -462,34 +460,6 @@ export const GoogleBusinessProfileCard: React.FC<GoogleBusinessProfileCardProps>
                 </span>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Verified Profile Link Bar */}
-        <div
-          className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs ${
-            isLight
-              ? 'bg-amber-50/50 border-amber-200 text-amber-900'
-              : 'bg-amber-400/5 border-amber-400/20 text-amber-200'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Share2 className="w-4 h-4 text-amber-500 shrink-0" />
-            <span className="font-medium">
-              Official Profile Share Link:{' '}
-              <span className="font-mono font-bold">{gbp.shareUrl}</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <a
-              href={gbp.shareUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full sm:w-auto text-center px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold transition-colors cursor-pointer shadow-xs"
-            >
-              Open Profile in Google
-            </a>
           </div>
         </div>
       </div>

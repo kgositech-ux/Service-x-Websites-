@@ -655,8 +655,8 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
               )}
             </button>
 
-            {/* Auth & Profile Actions */}
-            {user || profile ? (
+            {/* Auth & Profile Actions (when signed in) */}
+            {(user || profile) && (
               <div className="flex items-center gap-1.5">
                 {/* Account pill button */}
                 <button
@@ -706,25 +706,6 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Log Out</span>
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => (onOpenAuthModal ? onOpenAuthModal('signin') : onOpenAccountModal())}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                    isLight
-                      ? 'border-slate-300 hover:bg-slate-100 text-slate-800'
-                      : 'border-slate-700 hover:bg-slate-800 text-slate-200'
-                  }`}
-                >
-                  Log In
-                </button>
-                <button
-                  onClick={() => (onOpenAuthModal ? onOpenAuthModal('signup') : onOpenAccountModal())}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-md transition-all shrink-0 cursor-pointer"
-                >
-                  Sign Up
                 </button>
               </div>
             )}
@@ -788,10 +769,10 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-2 text-left text-amber-500 font-bold hover:bg-amber-400/10 rounded-lg flex items-center gap-1.5 col-span-2"
               >
-                <span>📄 Explore 25 Service & Industry Landing Pages</span>
+                <span>📄 Explore {LANDING_PAGES.length} Service &amp; Industry Landing Pages</span>
               </a>
 
-              {user || profile ? (
+              {(user || profile) && (
                 <>
                   <button
                     onClick={() => {
@@ -815,29 +796,6 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                     <span>Log Out of Account</span>
                   </button>
                 </>
-              ) : (
-                <div className="col-span-2 flex items-center gap-2 pt-1">
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      if (onOpenAuthModal) onOpenAuthModal('signin');
-                      else onOpenAccountModal();
-                    }}
-                    className="flex-1 p-2 text-center border border-slate-300 dark:border-slate-700 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
-                  >
-                    Log In
-                  </button>
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      if (onOpenAuthModal) onOpenAuthModal('signup');
-                      else onOpenAccountModal();
-                    }}
-                    className="flex-1 p-2 text-center bg-amber-400 text-slate-950 font-bold hover:bg-amber-300 rounded-lg cursor-pointer"
-                  >
-                    Sign Up
-                  </button>
-                </div>
               )}
             </div>
 
@@ -1786,15 +1744,15 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
             {[
               {
                 q: 'How much does a professional website cost in Rustenburg?',
-                a: 'At Service Websites, our website design packages range from R8,500 for high-converting service business websites up to R42,000 for full-scale headless e-commerce platforms with custom South African payment integrations. We provide fixed, transparent quotes with zero hidden fees.',
+                a: 'Business websites start from R3000\nBlogs, Bookings/Calendar websites from R4000\nE-commerce, brochures and online stores R5000',
               },
               {
                 q: 'How does Local SEO help my Rustenburg business get customers?',
                 a: 'Local SEO ensures your business appears in the top Google Maps "3-Pack" and local organic search results when clients in Rustenburg search for your services (e.g., "plumber near me" or "electrician in Rustenburg"). We implement schema markup, citation building, local keywords, and Google Business Profile optimization to directly generate WhatsApp leads and phone calls.',
               },
               {
-                q: 'How long will it take to build and launch our website?',
-                a: 'Standard service and trade websites typically launch in 7 to 10 business days from content submission. Custom e-commerce online stores with payment gateways (PayFast, Ozow, Yoco) take approximately 14 to 21 business days.',
+                q: 'How long does it take to build and launch a website?',
+                a: 'Typically a day for small business to maximum of 7 days for e-commerce websites.',
               },
               {
                 q: 'Are your websites fast and mobile-friendly on South African mobile networks?',
@@ -1839,13 +1797,24 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
 
                   {isOpen && (
                     <div
-                      className={`px-4 sm:px-5 pb-4 sm:pb-5 pt-1 text-xs sm:text-sm leading-relaxed border-t ${
+                      className={`px-4 sm:px-5 pb-4 sm:pb-5 pt-2 text-xs sm:text-sm leading-relaxed border-t ${
                         isLight
                           ? 'border-slate-100 text-slate-600 bg-slate-50/50'
                           : 'border-slate-800/80 text-slate-300 bg-[#0d121c]/50'
                       }`}
                     >
-                      <p>{faq.a}</p>
+                      {faq.a.includes('\n') ? (
+                        <ul className="space-y-1.5">
+                          {faq.a.split('\n').map((line, lIdx) => (
+                            <li key={lIdx} className="flex items-start gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                              <span className="font-medium">{line}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>{faq.a}</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2248,6 +2217,14 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
               <ul className="space-y-1.5">
                 <li>
                   <button
+                    onClick={() => handleNavigatePage('google-chatgpt-business-profiles')}
+                    className="text-left hover:underline text-amber-600 dark:text-amber-300 hover:text-amber-500 transition-colors cursor-pointer font-semibold"
+                  >
+                    Google &amp; ChatGPT Profiles (Pillar)
+                  </button>
+                </li>
+                <li>
+                  <button
                     onClick={() => handleNavigatePage('local-seo-rustenburg')}
                     className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer font-medium"
                   >
@@ -2301,9 +2278,25 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                 <li>
                   <button
                     onClick={() => handleNavigatePage('business-software-south-africa')}
+                    className="text-left hover:underline text-amber-600 dark:text-amber-300 hover:text-amber-500 transition-colors cursor-pointer font-semibold"
+                  >
+                    Business Software Pillar (SA)
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('booking-calendar-websites-south-africa')}
+                    className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer font-medium"
+                  >
+                    Calendar &amp; Booking Systems
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => handleNavigatePage('blog-cms-websites-south-africa')}
                     className="text-left hover:underline hover:text-amber-500 transition-colors cursor-pointer"
                   >
-                    Business Software SA
+                    Blogs &amp; CMS Publishing
                   </button>
                 </li>
                 <li>
@@ -2476,7 +2469,7 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                       isLight ? 'text-slate-900' : 'text-white'
                     }`}
                   >
-                    All 25 Service & Industry Landing Pages
+                    All {LANDING_PAGES.length} Service &amp; Industry Landing Pages
                   </h4>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -2489,7 +2482,7 @@ export const ServiceWebsitesSite: React.FC<ServiceWebsitesSiteProps> = ({
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search 25 pages..."
+                  placeholder={`Search ${LANDING_PAGES.length} pages...`}
                   value={footerSearch}
                   onChange={(e) => setFooterSearch(e.target.value)}
                   className={`w-full pl-8 pr-3 py-1.5 rounded-xl text-xs border outline-none transition-colors ${
